@@ -69,28 +69,10 @@ struct StrUtil {
         }
     }
 
-
-    static std::string pure_uri_path(std::string uri) {  // copy
-        uri = boost::algorithm::trim_copy(boost::to_lower_copy(uri));
-        while (uri[uri.size()-1] == '/' && uri.size() > 1)  // 全部的小写字母，去除尾部
-            uri = uri.substr(0, uri.size()-1);
-
-        return uri;
-    }
-
     static std::string trim_lowcase(std::string str) {  // copy
         return boost::algorithm::trim_copy(boost::to_lower_copy(str));
     }
 
-    // 删除host尾部的端口号
-    static std::string drop_host_port(std::string host) {  // copy
-        host = boost::algorithm::trim_copy(boost::to_lower_copy(host));
-        auto pos = host.find(':');
-        if (pos != std::string::npos) {
-            host.erase(pos);
-        }
-        return host;
-    }
 };
 
 

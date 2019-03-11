@@ -72,3 +72,6 @@ target_link_libraries( tzschedule -lrt -rdynamic -ldl
     -Wl,--whole-archive ${WHOLE_LIBS} -Wl,--no-whole-archive
     ${EXTRA_LIBS}
 )
+
+
+add_subdirectory( test )

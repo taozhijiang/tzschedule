@@ -69,7 +69,7 @@ private:
     // 禁止拷贝
     JobExecutor(const JobExecutor&) = delete;
     JobExecutor& operator=(const JobExecutor&) = delete;
-	
+
     // 根据rpc_queue_自动伸缩线程负载
     void threads_adjust(const boost::system::error_code& ec);
 };
