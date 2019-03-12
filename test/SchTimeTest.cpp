@@ -32,18 +32,18 @@ TEST(SchTimeTest, SchTimeParseTest) {
 
 TEST(SchTimeTest, SchTimeNextTest) {
 
+    // 在线 http://www.matools.com/crontab 进行校验
+    // http://tool.chinaz.com/Tools/unixtime.aspx
+    // '2018-04-30 00:00:00' ==> 1525017600
+    time_t FROM = 1525017600L;
+
     std::string test_sch = "*/3 * *";
     SchTime schTm{};
 
     ASSERT_THAT(schTm.parse(test_sch), Eq(true));
-    int next_i = schTm.next_interval();
+    int next_i = schTm.next_interval(FROM);
     ASSERT_THAT(next_i, Eq(3));
 
-    // 在线 http://www.matools.com/crontab 进行校验
-    // http://tool.chinaz.com/Tools/unixtime.aspx
-    // '2018-04-30 00:00:00' ==> 1525017600
-
-    time_t FROM = 1525017600L;
 
     test_sch = "12,24 * *";
     ASSERT_THAT(schTm.parse(test_sch), Eq(true));
@@ -59,8 +59,77 @@ TEST(SchTimeTest, SchTimeNextTest) {
     test_sch = "* 2 *";
     ASSERT_THAT(schTm.parse(test_sch), Eq(true));
     next_i = schTm.next_interval(FROM);
-    ASSERT_THAT(next_i, Eq(2*60*60));
+    ASSERT_THAT(next_i, Eq(120));
 
     log_debug("SchTimeNextTest finished.");
 }
+
+
+TEST(SchTimeTest, SchTimeNextTest2) {
+
+    // 在线 http://www.matools.com/crontab 进行校验
+    // http://tool.chinaz.com/Tools/unixtime.aspx
+    // '2018-04-30 00:00:00' ==> 1525017600
+    time_t FROM = 1525017600L + 58;
+
+    std::string test_sch = "*/3 * *";
+    SchTime schTm{};
+
+    ASSERT_THAT(schTm.parse(test_sch), Eq(true));
+    int next_i = schTm.next_interval(FROM);
+    ASSERT_THAT(next_i, Eq(2));  // next + 0
+
+
+    test_sch = "12,24 * *";
+    ASSERT_THAT(schTm.parse(test_sch), Eq(true));
+    next_i = schTm.next_interval(FROM);
+    ASSERT_THAT(next_i, Eq(14));
+
+    test_sch = "* */2 *";
+    ASSERT_THAT(schTm.parse(test_sch), Eq(true));
+    next_i = schTm.next_interval(FROM);
+    ASSERT_THAT(next_i, Eq(1));
+
+    test_sch = "* 2 *";
+    ASSERT_THAT(schTm.parse(test_sch), Eq(true));
+    next_i = schTm.next_interval(FROM);
+    ASSERT_THAT(next_i, Eq(2*60 - 58));
+
+    log_debug("SchTimeNextTest2 finished.");
+}
+
+
+TEST(SchTimeTest, SchTimeNextTest3) {
+
+    // 在线 http://www.matools.com/crontab 进行校验
+    // http://tool.chinaz.com/Tools/unixtime.aspx
+    // '2018-04-30 00:00:00' ==> 1525017600
+    time_t FROM = 1525017600L + 24*60*60 - 2;
+
+    std::string test_sch = "*/3 * *";
+    SchTime schTm{};
+
+    ASSERT_THAT(schTm.parse(test_sch), Eq(true));
+    int next_i = schTm.next_interval(FROM);
+    ASSERT_THAT(next_i, Eq(2));  // next + 0
+
+
+    test_sch = "12,24 * *";
+    ASSERT_THAT(schTm.parse(test_sch), Eq(true));
+    next_i = schTm.next_interval(FROM);
+    ASSERT_THAT(next_i, Eq(14));
+
+    test_sch = "* */2 *";
+    ASSERT_THAT(schTm.parse(test_sch), Eq(true));
+    next_i = schTm.next_interval(FROM);
+    ASSERT_THAT(next_i, Eq(2));
+
+    test_sch = "* 2 *";
+    ASSERT_THAT(schTm.parse(test_sch), Eq(true));
+    next_i = schTm.next_interval(FROM);
+    ASSERT_THAT(next_i, Eq(2*60 + 2));
+
+    log_debug("SchTimeNextTest3 finished.");
+}
+
 

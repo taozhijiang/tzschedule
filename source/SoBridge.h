@@ -50,8 +50,8 @@ int fill_msg(msg_t* msg, const char* data, size_t len) {
 
 // caller alloc req,  caller free req
 // callee alloc resp, caller free resp
-typedef int (*so_handler_00_t)(void);
-typedef int (*so_handler_11_t)(const msg_t* req1, msg_t* resp);
+// 暂时先这样组织，如果handler没有这些参数，则将其设置为NULL
+typedef int (*so_handler_t)(const msg_t* req, msg_t* rsp);
 
 typedef int (*module_init_t)();
 typedef int (*module_exit_t)();

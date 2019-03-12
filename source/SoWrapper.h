@@ -40,10 +40,11 @@ protected:
 };
 
 
-class SoWrapper00Func: public SoWrapper {
+// 默认的handle函数，后续如有需求，则再进行扩充
+class SoWrapperFunc: public SoWrapper {
 
 public:
-    explicit SoWrapper00Func(const std::string& dl_path):
+    explicit SoWrapperFunc(const std::string& dl_path):
         SoWrapper(dl_path) {
     }
 
@@ -51,8 +52,13 @@ public:
 
     int operator()();
 
+    // 下面的暂时没用上
+    int operator()(const std::string& req);
+    int operator()(std::string& rsp);
+    int operator()(const std::string& req, std::string& rsp);
+
 private:
-    so_handler_00_t func_;
+    so_handler_t func_;
 };
 
 

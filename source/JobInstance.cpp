@@ -7,6 +7,9 @@
 
 
 #include "StrUtil.h"
+
+#include "SoWrapper.h"
+#include "Timer.h"
 #include "JobInstance.h"
 
 #include "Log.h"
@@ -184,7 +187,7 @@ uint8_t SchTime::find_ge_of(const std::bitset<N>& bits, int from) {
         }
     }
 
-    return -1;
+    return 0;
 }
 
 
@@ -208,36 +211,60 @@ try {
 
     do {
 
-        next_sec ++;
-
-        next_sec = find_ge_of(sec_tp_, next_sec);
-        if (next_sec < 0) {
-            next_sec = find_ge_of(sec_tp_, 0);
-            next_min ++;
-        }
-
-        next_min = find_ge_of(min_tp_, next_min);
-        if (next_min < 0) {
+        if (!hour_tp_.test(next_hour))
+        {
+            next_hour = find_ge_of(hour_tp_, next_hour + 1);
+            if (next_hour == 0) {
+                next_hour = find_ge_of(hour_tp_, 0);
+            }
             next_min = find_ge_of(min_tp_, 0);
-            next_hour++;
+            next_sec = find_ge_of(sec_tp_, 0);
+        }
+        else if (!min_tp_.test(next_min))
+        {
+            next_min = find_ge_of(min_tp_, next_min + 1);
+            if (next_min == 0) {
+                next_min = find_ge_of(min_tp_, 0);
+                next_hour = find_ge_of(hour_tp_, next_hour + 1);
+                if (next_hour == 0) {
+                    next_hour = find_ge_of(hour_tp_, 0);
+                }
+            }
+            next_sec = find_ge_of(sec_tp_, 0);
+        }
+        else
+        {
+            next_sec = find_ge_of(sec_tp_, next_sec + 1);
+            if (next_sec == 0) {
+                next_sec = find_ge_of(sec_tp_, 0);
+
+                next_min = find_ge_of(min_tp_, next_min + 1);
+                if (next_min == 0) {
+                    next_min = find_ge_of(min_tp_, 0);
+                    next_hour = find_ge_of(hour_tp_, next_hour + 1);
+                    if (next_hour == 0) {
+                        next_hour = find_ge_of(hour_tp_, 0);
+                    }
+                }
+            }
         }
 
-        next_hour = find_ge_of(hour_tp_, next_hour);
-        if (next_hour < 0) {
-            next_hour = find_ge_of(hour_tp_, 0);
-        }
-
-        if (next_sec < 0 || next_min < 0 || next_hour < 0) {
+        // 最终合法性校验
+        if (next_sec < 0 || next_min < 0 || next_hour < 0 ||
+            next_sec > 60 || next_min >=60 || next_hour > 23 ) {
             log_err("find next_interval failed...");
+            log_err("next_hour: %d, next_min: %d, next_sec:%d ",
+                    next_hour, next_min, next_sec);
             return -1;
         }
 
         next_tm = ::mktime(&tm_time) - from;
         if (next_tm < 0) { // 日期溢出了
-            log_debug("override day switch from %d-%d-%d %d:%d:%d",
-                      tm_time.tm_year + 1970, tm_time.tm_mon, tm_time.tm_mday,
-                      tm_time.tm_hour, tm_time.tm_sec, tm_time.tm_sec);
+            log_debug("overflow day switch from %d-%d-%d %d:%d:%d",
+                      tm_time.tm_year + 1900, tm_time.tm_mon, tm_time.tm_mday,
+                      tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
             next_tm += 24 * 60 * 60;
+            log_debug("new next_tm: %ld", next_tm);
         }
 
     } while (0);
@@ -253,14 +280,72 @@ try {
 
 
 
+
+JobInstance::~JobInstance() {
+    log_debug("Job Destructed:\n%s", this->str().c_str());
+}
+
+
 bool JobInstance::init() {
-	
-	if(name_.empty() || sch_time_.empty() || so_path_.empty()) {
-		return false;
-	}
-	
-	
-	return true;
+
+    if (name_.empty() || time_str_.empty() || so_path_.empty()) {
+        return false;
+    }
+
+    if (!sch_timer_.parse(time_str_)) {
+        log_err("parse time setting failed.");
+        return false;
+    }
+
+    so_handler_.reset( new SoWrapperFunc(so_path_) );
+    if (!so_handler_ || !so_handler_->init()) {
+        log_err("create and init so_handler failed.");
+        return false;
+    }
+
+    if (!next_trigger()) {
+        log_err("first init next_trigger failed.");
+        return false;
+    }
+
+    log_debug("JobInstance initialized finished:\n%s", this->str().c_str());
+
+    return true;
+}
+
+
+
+void JobInstance::operator()() {
+
+    SAFE_ASSERT(so_handler_);
+
+    if (!so_handler_) {
+        log_err("Instance with empty so_handler!");
+        return;
+    }
+
+    (*so_handler_)();
+
+    next_trigger();
+
+}
+
+
+void JE_add_task(std::shared_ptr<JobInstance>& ins);
+void JE_add_task_defer(std::shared_ptr<JobInstance>& ins);
+
+bool JobInstance::next_trigger() {
+
+    int next_interval = sch_timer_.next_interval();
+    if (next_interval < 0) {
+        log_err("next_interval failed.");
+        return false;
+    }
+
+    timer_ = Timer::instance().add_better_timer(
+        std::bind(JE_add_task, shared_from_this()), next_interval * 1000, false);
+
+    return true;
 }
 
 

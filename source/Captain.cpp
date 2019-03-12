@@ -17,6 +17,8 @@
 #include "Timer.h"
 
 #include "ConfHelper.h"
+#include "JobExecutor.h"
+
 #include "Captain.h"
 
 namespace tzrpc {
@@ -65,9 +67,14 @@ bool Captain::init(const std::string& cfgFile) {
     log_init(log_level);
     log_notice("initialized log with level: %d", log_level);
 
-    // TODO
+    if(!JobExecutor::instance().init(*conf_ptr)){
+        log_err("JobExecutor init failed, critital.");
+        return false;
+    }
 
-    log_info("Manager all initialized...");
+    JobExecutor::instance().threads_start();
+
+    log_info("Captain makes all initialized...");
     initialized_ = true;
 
     return true;
@@ -80,12 +87,15 @@ bool Captain::service_graceful() {
 }
 
 void Captain::service_terminate() {
+
     ::sleep(1);
     ::_exit(0);
 }
 
 bool Captain::service_joinall() {
 
+    Timer::instance().threads_join();
+    JobExecutor::instance().threads_join();
     return true;
 }
 

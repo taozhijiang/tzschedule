@@ -21,19 +21,53 @@ namespace tzrpc {
 
 class JobInstance;
 
+
+struct JobExecutorConf {
+
+    int thread_number_;
+    int thread_number_hard_;  // 允许最大的线程数目
+    int thread_step_queue_size_;
+
+    JobExecutorConf():
+        thread_number_(1),
+        thread_number_hard_(1),
+        thread_step_queue_size_(0) {
+    }
+
+} __attribute__ ((aligned (4)));
+
+
+
+void JE_add_task(std::shared_ptr<JobInstance>& ins);
+void JE_add_task_defer(std::shared_ptr<JobInstance>& ins);
+
 class JobExecutor {
+
+    friend void JE_add_task(std::shared_ptr<JobInstance>& ins);
+    friend void JE_add_task_defer(std::shared_ptr<JobInstance>& ins);
 
 public:
 
     static JobExecutor& instance();
 
-    bool init();
+    bool init(const libconfig::Config& conf);
     int module_runtime(const libconfig::Config& conf);
     int module_status(std::string& module, std::string& name, std::string& val);
 
 private:
-    EQueue<std::shared_ptr<JobInstance>> inline_queue_;
-    EQueue<std::shared_ptr<JobInstance>> defers_queue_;
+
+    JobExecutorConf conf_;
+
+    std::mutex      lock_;
+    std::map<std::string, std::shared_ptr<JobInstance>> tasks_;
+
+    bool parse_handle_conf(const libconfig::Setting& setting);
+
+    // 在线程池中依序列执行
+    EQueue<std::weak_ptr<JobInstance>> inline_queue_;
+
+    // 每个任务开辟一个新的线程执行，主要是用于比较耗时的任务
+    EQueue<std::weak_ptr<JobInstance>> defers_queue_;
 
     ThreadPool threads_;
     void job_executor_run(ThreadObjPtr ptr);  // main task loop
@@ -64,6 +98,7 @@ public:
 
 private:
 
+    JobExecutor(){}
     virtual ~JobExecutor(){}
 
     // 禁止拷贝
@@ -73,6 +108,8 @@ private:
     // 根据rpc_queue_自动伸缩线程负载
     void threads_adjust(const boost::system::error_code& ec);
 };
+
+
 
 } // end namespace tzrpc
 

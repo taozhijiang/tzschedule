@@ -38,8 +38,14 @@ public:
     }
 
     ~TimerObject() {
-        log_err("Good, Timer released...");
+        log_debug("Good, Timer released...");
     }
+
+
+    // 禁止拷贝
+    TimerObject(const TimerObject&) = delete;
+    TimerObject& operator=(const TimerObject&) = delete;
+
 
     bool init() {
         steady_timer_.reset(new steady_timer(io_service_));
@@ -53,7 +59,13 @@ public:
         return true;
     }
 
+    bool cancel() {
+
+        return false;
+    }
+
     void timer_run(const boost::system::error_code& ec) {
+
         if (func_) {
             func_(ec);
         } else {
@@ -75,6 +87,10 @@ private:
     bool forever_;
 };
 
+
+
+// 注意，这里的Timer不持有任何TimerObject对象的智能指针，
+//      TimerObject完全是依靠shared_from_this()自持有的
 class Timer {
 
 public:
@@ -87,19 +103,38 @@ public:
         return true;
     }
 
+    void threads_join() {
+        work_guard_.reset();
+        io_service_thread_.join();
+    }
+
     boost::asio::io_service& get_io_service() {
         return  io_service_;
     }
 
     bool add_timer(const TimerEventCallable& func, uint64_t msec, bool forever) {
-        std::shared_ptr<TimerObject> timer = std::make_shared<TimerObject>(io_service_, std::move(func), msec, forever);
+        std::shared_ptr<TimerObject> timer
+                = std::make_shared<TimerObject>(io_service_, std::move(func), msec, forever);
+
         if (!timer || !timer->init()) {
+            log_err("create and init timer failed.");
             return false;
         }
         return true;
     }
 
-public:
+    // 增强版的定时器，返回TimerObject，可以控制定时器的取消
+    std::shared_ptr<TimerObject> add_better_timer(const TimerEventCallable& func, uint64_t msec, bool forever) {
+        std::shared_ptr<TimerObject> timer
+                = std::make_shared<TimerObject>(io_service_, std::move(func), msec, forever);
+
+        if (!timer || !timer->init()) {
+            log_err("create and init timer failed.");
+            timer.reset();
+        }
+        return timer;
+    }
+
 
 private:
 

@@ -12,6 +12,7 @@
 
 #include <bitset>
 
+#include "SoWrapper.h"
 
 namespace tzrpc {
 
@@ -49,30 +50,39 @@ private:
 };
 
 
-class JobInstance {
+class SoWrapperFunc;
+class TimerObject;
+
+class JobInstance: public std::enable_shared_from_this<JobInstance> {
 
 public:
 
     JobInstance(const std::string& name, const std::string& desc,
-                const std::string& sch_time, const std::string& so_path): 
+                const std::string& time_str, const std::string& so_path):
         name_(name),
         desc_(desc),
-        sch_time_(sch_time),
-        so_path_(so_path) {
+        time_str_(time_str),
+        so_path_(so_path),
+        sch_timer_() {
     }
 
-    ~JobInstance() {
-    }
+    ~JobInstance();
+
+    // 禁止拷贝
+    JobInstance(const JobInstance&) = delete;
+    JobInstance& operator=(const JobInstance&) = delete;
 
 
     bool init();
+    void operator()();
+    bool next_trigger();
 
     std::string str() {
         std::stringstream ss;
 
         ss << "JobInstance: " << name_ << std::endl;
         ss << "desc: " << desc_ << ", ";
-        ss << "sch_time_: " << sch_time_ << ", ";
+        ss << "sch_time: " << time_str_ << ", ";
         ss << "so_path: " << so_path_;
 
         return ss.str();
@@ -82,8 +92,12 @@ private:
     // 原始配置参数
     const std::string name_;
     const std::string desc_;
-    const std::string sch_time_;
+    const std::string time_str_;
     const std::string so_path_;
+
+    SchTime sch_timer_;
+    std::unique_ptr<SoWrapperFunc> so_handler_;
+    std::shared_ptr<TimerObject>   timer_;
 };
 
 } // end namespace tzrpc
