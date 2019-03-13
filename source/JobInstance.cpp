@@ -331,20 +331,30 @@ void JobInstance::operator()() {
 }
 
 
-void JE_add_task(std::shared_ptr<JobInstance>& ins);
 void JE_add_task_defer(std::shared_ptr<JobInstance>& ins);
+void JE_add_task_async(std::shared_ptr<JobInstance>& ins);
 
 bool JobInstance::next_trigger() {
 
     int next_interval = sch_timer_.next_interval();
-    if (next_interval < 0) {
+    if (next_interval <= 0) {
         log_err("next_interval failed.");
         return false;
     }
 
-    timer_ = Timer::instance().add_better_timer(
-        std::bind(JE_add_task, shared_from_this()), next_interval * 1000, false);
+    if (exec_method_ == ExecuteMethod::kExecDefer) {
+        timer_ = Timer::instance().add_better_timer(
+            std::bind(JE_add_task_defer, shared_from_this()), next_interval * 1000, false);
+    } else if (exec_method_ == ExecuteMethod::kExecAsync ) {
+        timer_ = Timer::instance().add_better_timer(
+            std::bind(JE_add_task_async, shared_from_this()), next_interval * 1000, false);
+    } else {
+        log_err("unknown exec_method: %d", static_cast<int32_t>(exec_method_));
+        return false;
+    }
 
+    log_debug("next trigger for %s success, for interval: %d secs.",
+              name_.c_str(), next_interval);
     return true;
 }
 

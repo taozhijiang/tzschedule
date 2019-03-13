@@ -18,7 +18,7 @@ int module_exit() {
 
 int so_handler(const msg_t* req, msg_t* rsp) {
 
-    tzrpc::log_debug("inline job2 running log, thread %lx ...",  (long)pthread_self());
+    tzrpc::log_debug("defer job running log, thread %lx ...",(long)pthread_self());
     return 0;
 }
 

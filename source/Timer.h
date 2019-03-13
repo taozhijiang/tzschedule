@@ -11,7 +11,6 @@
 #include <xtra_rhel.h>
 
 #include <boost/asio.hpp>
-#include <boost/thread.hpp>
 
 #include <boost/asio/steady_timer.hpp>
 using boost::asio::steady_timer;
@@ -104,7 +103,6 @@ public:
     }
 
     void threads_join() {
-        work_guard_.reset();
         io_service_thread_.join();
     }
 
@@ -145,6 +143,7 @@ private:
     }
 
     ~Timer() {
+        io_service_.stop();
         work_guard_.reset();
     }
 
@@ -173,6 +172,7 @@ private:
         io_service_.run(ec);
 
         log_notice("Timer io_service thread terminated ...");
+        log_notice("error_code: {%d} %s", ec.value(), ec.message().c_str());
     }
 
 };

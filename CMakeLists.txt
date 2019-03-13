@@ -12,6 +12,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__=\"$(notdir $<)\" " )
 # cmake -DCMAKE_VERBOSE_MAKEFILE=true ../
 
 
+#cmake -DCMAKE_BUILD_TYPE=DEBUG/RELEASE
 set(CMAKE_BUILD_TYPE DEBUG)
 #set(CMAKE_BUILD_TYPE RELEASE)
 set(CMAKE_CXX_FLAGS_DEBUG   "$ENV{CXXFLAGS} -O0 -g")
@@ -75,5 +76,6 @@ target_link_libraries( tzschedule -lrt -rdynamic -ldl
 
 add_subdirectory( source/so-handler/job1 )
 add_subdirectory( source/so-handler/job2 )
+add_subdirectory( source/so-handler/jobdefer )
 
 add_subdirectory( test )

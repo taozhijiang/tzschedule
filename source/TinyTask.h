@@ -10,6 +10,8 @@
 #define __TZSERIAL_TINY_TASK_H__
 
 
+#include <xtra_rhel.h>
+
 // 本来想直接使用future来做的，但是现有生产环境太旧，std::future
 // 和boost::future都不可用，这里模拟一个任务结构，采用one-task-per-thread的方式，
 // 进行弹性的任务创建执行。
@@ -17,20 +19,19 @@
 #include <memory>
 #include <functional>
 
-#include <boost/thread.hpp>
-
-#include <Utils/EQueue.h>
+#include "ThreadMng.h"
+#include "EQueue.h"
 
 namespace tzrpc {
 
-typedef std::function<void()> TaskRunnable;
-
 class TinyTask: public std::enable_shared_from_this<TinyTask> {
+
 public:
 
     explicit TinyTask(uint8_t max_spawn_task):
-       max_spawn_task_(max_spawn_task){
-       }
+        max_spawn_task_(max_spawn_task),
+        thread_mng_(max_spawn_task) {
+    }
 
     ~TinyTask() {}
 
@@ -52,6 +53,11 @@ public:
         tasks_.PUSH(func);
     }
 
+    // 返回大致可用的空闲线程数目
+    uint32_t available() {
+        return max_spawn_task_ - thread_mng_.current_size();
+    }
+
 
 private:
     void run() {
@@ -60,30 +66,31 @@ private:
 
         while (true) {
 
-            std::vector<TaskRunnable> task;
-            size_t count = tasks_.POP(task, max_spawn_task_, 1000);
+            std::vector<TaskRunnable> tasks {};
+            size_t count = tasks_.POP(tasks, max_spawn_task_, 1000);
             if( !count ){  // 空闲
                 continue;
             }
 
-            std::vector<boost::thread> thread_group;
-            for(size_t i=0; i<task.size(); ++i) {
-                thread_group.emplace_back(boost::thread(task[i]));
+            for(size_t i=0; i<tasks.size(); ++i) {
+                thread_mng_.add_task(tasks[i]);
             }
 
-            for(size_t i=0; i<task.size(); ++i) {
-                if(thread_group[i].joinable())
-                    thread_group[i].join();
-            }
+            thread_mng_.join_all();
 
-            printf("count %d task process done!", static_cast<int>(task.size()));
+            printf("count %d task process done!", static_cast<int>(tasks.size()));
         }
     }
 
 private:
-    const uint32_t max_spawn_task_;
 
+    const uint32_t max_spawn_task_;
     std::shared_ptr<boost::thread> thread_run_;
+
+    // 封装线程管理细节
+    ThreadMng thread_mng_;
+
+    // 待单独执行的任务列表
     EQueue<TaskRunnable> tasks_;
 };
 

@@ -16,10 +16,10 @@ int module_exit() {
     return 0;
 }
 
-
 int so_handler(const msg_t* req, msg_t* rsp) {
 
-    tzrpc::log_debug("get job1 running log...");
+    tzrpc::log_debug("inline job1 running log, thread %lx ...", (long)pthread_self());
+
     return 0;
 }
 
@@ -27,3 +27,4 @@ int so_handler(const msg_t* req, msg_t* rsp) {
 #ifdef __cplusplus
 }
 #endif
+

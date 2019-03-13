@@ -53,15 +53,23 @@ private:
 class SoWrapperFunc;
 class TimerObject;
 
+enum ExecuteMethod {
+    kExecDefer  = 1,
+    kExecAsync  = 2,
+    kExecBoundary,
+};
+
 class JobInstance: public std::enable_shared_from_this<JobInstance> {
 
 public:
 
     JobInstance(const std::string& name, const std::string& desc,
-                const std::string& time_str, const std::string& so_path):
+                const std::string& time_str, const std::string& so_path,
+                enum ExecuteMethod method = ExecuteMethod::kExecDefer ):
         name_(name),
         desc_(desc),
         time_str_(time_str),
+        exec_method_(method),
         so_path_(so_path),
         sch_timer_() {
     }
@@ -80,10 +88,11 @@ public:
     std::string str() {
         std::stringstream ss;
 
-        ss << "JobInstance: " << name_ << std::endl;
-        ss << "desc: " << desc_ << ", ";
-        ss << "sch_time: " << time_str_ << ", ";
-        ss << "so_path: " << so_path_;
+        ss << "JobInstance: " << name_ << std::endl
+           << "desc: " << desc_ << ", "
+           << "sch_time: " << time_str_ << ", "
+           << "exec_method: " << static_cast<int32_t>(exec_method_) << ", "
+           << "so_path: " << so_path_;
 
         return ss.str();
     }
@@ -93,6 +102,7 @@ private:
     const std::string name_;
     const std::string desc_;
     const std::string time_str_;
+    enum ExecuteMethod exec_method_;
     const std::string so_path_;
 
     SchTime sch_timer_;

@@ -14,16 +14,19 @@
 #include "JobInstance.h"
 #include "JobExecutor.h"
 
+#include "TinyTask.h"
+
 namespace tzrpc {
 
 
-void JE_add_task(std::shared_ptr<JobInstance>& ins) {
-    JobExecutor::instance().inline_queue_.PUSH(ins);
+void JE_add_task_defer(std::shared_ptr<JobInstance>& ins) {
+    JobExecutor::instance().defer_queue_.PUSH(ins);
 }
 
-void JE_add_task_defer(std::shared_ptr<JobInstance>& ins) {
-    JobExecutor::instance().defers_queue_.PUSH(ins);
+void JE_add_task_async(std::shared_ptr<JobInstance>& ins) {
+    JobExecutor::instance().async_queue_.PUSH(ins);
 }
+
 
 JobExecutor& JobExecutor::instance() {
     static JobExecutor helper;
@@ -86,6 +89,19 @@ bool JobExecutor::init(const libconfig::Config& conf) {
         return false;
     }
 
+    async_main_ = boost::thread(std::bind(&JobExecutor::job_executor_async_run, this));
+    async_task_ = std::make_shared<TinyTask>(conf_.thread_max_async_);
+    if (!async_task_ || !async_task_->init()) {
+        log_err("create async_task failed.");
+        return false;
+    }
+
+    if (!threads_.init_threads(
+            std::bind(&JobExecutor::job_executor_run, this, std::placeholders::_1), conf_.thread_number_)) {
+        log_err("job_executor_run init task failed!");
+        return false;
+    }
+
     Status::instance().register_status_callback(
                 "JobExecutor",
                 std::bind(&JobExecutor::module_status, this,
@@ -103,12 +119,26 @@ bool JobExecutor::parse_handle_conf(const libconfig::Setting& setting) {
     std::string name;
     std::string desc;
     std::string sch_time;
+    std::string exec_method;
     std::string so_path;
 
     setting.lookupValue("name", name);
     setting.lookupValue("desc", desc);
     setting.lookupValue("sch_time", sch_time);
+    setting.lookupValue("exec_method", exec_method);
     setting.lookupValue("so_path", so_path);
+
+    enum ExecuteMethod method = ExecuteMethod::kExecDefer;
+    if (!exec_method.empty()) {
+        if (exec_method == "defer") {
+            method = ExecuteMethod::kExecDefer;
+        } else if (exec_method == "async") {
+            method = ExecuteMethod::kExecAsync;
+        } else {
+            log_err("invalid exec_method: %s", exec_method.c_str());
+            return false;
+        }
+    }
 
     std::unique_lock<std::mutex> lock(lock_);
     if (tasks_.find(name) != tasks_.end()) {
@@ -116,7 +146,7 @@ bool JobExecutor::parse_handle_conf(const libconfig::Setting& setting) {
         return false;
     }
 
-    auto ins = std::make_shared<JobInstance>(name, desc, sch_time, so_path);
+    auto ins = std::make_shared<JobInstance>(name, desc, sch_time, so_path, method);
     if (!ins || !ins->init()) {
         log_err("init JobInstance failed, name: %s", name.c_str());
         return false;
@@ -156,7 +186,7 @@ void JobExecutor::job_executor_run(ThreadObjPtr ptr) {
             continue;
         }
 
-        if (!inline_queue_.POP(job_instance, 1000 /*1s*/)) {
+        if (!defer_queue_.POP(job_instance, 1000 /*1s*/)) {
             continue;
         }
 
@@ -177,6 +207,85 @@ void JobExecutor::job_executor_run(ThreadObjPtr ptr) {
 
 }
 
+
+
+void JobExecutor::job_executor_async_run() {
+
+    log_alert("JobExecutor async %#lx about to loop ...", (long)pthread_self());
+
+#if __cplusplus >= 201103L
+
+    // TODO and debug
+
+    // 只有本线程操作，所以不需要考虑并发
+    std::vector<boost::future<void>> async_tasks {};
+
+
+    while (true) {
+
+        std::weak_ptr<JobInstance> job_instance {};
+
+        // 先检查之前的任务是否都执行了
+        for (auto iter = async_tasks.begin(); iter != async_tasks.end(); /**/ ) {
+
+            if (!iter->valid()) {
+                continue;
+            }
+
+            iter = async_tasks.erase(iter);
+        }
+
+        if (!async_queue_.POP(job_instance, 1000 /*1s*/)) {
+            continue;
+        }
+
+        if (auto s_instance = job_instance.lock()) {
+
+            boost::future<void> fu = boost::async(boost::launch::async, std::ref(*s_instance));
+            async_tasks.push_back(std::move(fu));
+
+        } else {
+            log_debug("instance already release before, give up this task.");
+        }
+
+        log_info("defer thread group size: %lu", async_tasks.size());
+    }
+
+
+#else
+
+    while (true) {
+
+        std::weak_ptr<JobInstance> job_instance {};
+
+        uint32_t available = async_task_->available();
+        if (available == 0) {
+            log_notice("current async_task full.");
+            boost::this_thread::sleep_for(milliseconds(200));
+            continue;
+        }
+
+        if (!async_queue_.POP(job_instance, 1000 /*1s*/)) {
+            continue;
+        }
+
+        if (auto s_instance = job_instance.lock()) {
+            auto func = std::bind(&JobInstance::operator(), s_instance);
+            async_task_->add_additional_task(func);
+        } else {
+            log_debug("instance already release before, give up this task.");
+        }
+
+    }
+
+
+#endif
+
+    log_info("JobExecutor async %#lx is about to terminate ... ", (long)pthread_self());
+
+    return;
+
+}
 
 int JobExecutor::module_status(std::string& module, std::string& name, std::string& val) {
 
