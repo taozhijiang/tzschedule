@@ -76,6 +76,6 @@ target_link_libraries( tzschedule -lrt -rdynamic -ldl
 
 add_subdirectory( source/so-handler/job1 )
 add_subdirectory( source/so-handler/job2 )
-add_subdirectory( source/so-handler/jobdefer )
+add_subdirectory( source/so-handler/jobasync )
 
 add_subdirectory( test )

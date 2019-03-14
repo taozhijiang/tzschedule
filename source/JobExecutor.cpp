@@ -41,6 +41,7 @@ bool JobExecutor::init(const libconfig::Config& conf) {
     conf.lookupValue("thread_pool_size", conf_.thread_number_);
     conf.lookupValue("thread_pool_size_hard", conf_.thread_number_hard_);
     conf.lookupValue("thread_pool_step_queue_size", conf_.thread_step_queue_size_);
+    conf.lookupValue("thread_pool_async_size", conf_.thread_number_async_);
 
     if (conf_.thread_number_hard_ < conf_.thread_number_) {
         conf_.thread_number_hard_ = conf_.thread_number_;
@@ -59,6 +60,25 @@ bool JobExecutor::init(const libconfig::Config& conf) {
         log_err("invalid thread_step_queue_size setting: %d",
                 conf_.thread_step_queue_size_);
         return false;
+    }
+
+    if (conf_.thread_number_async_ <= 0) {
+        log_err("invalid thread_pool_async_size setting: %d",
+                conf_.thread_number_async_);
+        return false;
+    }
+
+    if (conf_.thread_number_hard_ > conf_.thread_number_ &&
+        conf_.thread_step_queue_size_ > 0)
+    {
+        log_debug("we will support thread adjust with param hard %d, queue_step %d",
+                          conf_.thread_number_hard_, conf_.thread_step_queue_size_);
+
+        if (!Timer::instance().add_timer(std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
+                                        1*1000, true)) {
+            log_err("create thread adjust timer failed.");
+            return false;
+        }
     }
 
     // handlers
@@ -90,15 +110,9 @@ bool JobExecutor::init(const libconfig::Config& conf) {
     }
 
     async_main_ = boost::thread(std::bind(&JobExecutor::job_executor_async_run, this));
-    async_task_ = std::make_shared<TinyTask>(conf_.thread_max_async_);
+    async_task_ = std::make_shared<TinyTask>(conf_.thread_number_async_);
     if (!async_task_ || !async_task_->init()) {
         log_err("create async_task failed.");
-        return false;
-    }
-
-    if (!threads_.init_threads(
-            std::bind(&JobExecutor::job_executor_run, this, std::placeholders::_1), conf_.thread_number_)) {
-        log_err("job_executor_run init task failed!");
         return false;
     }
 
@@ -161,9 +175,39 @@ bool JobExecutor::parse_handle_conf(const libconfig::Setting& setting) {
 
 
 void JobExecutor::threads_adjust(const boost::system::error_code& ec) {
-	
-	// TODO
-	
+
+    JobExecutorConf conf {};
+
+    {
+        std::lock_guard<std::mutex> lock(lock_);
+        conf = conf_;
+    }
+
+    SAFE_ASSERT(conf.thread_step_queue_size_ > 0);
+    if (!conf.thread_step_queue_size_) {
+        return;
+    }
+
+    // 进行检查，看是否需要伸缩线程池
+    int expect_thread = conf.thread_number_;
+
+    int queueSize = defer_queue_.SIZE();
+    if (queueSize > conf.thread_step_queue_size_) {
+        expect_thread += queueSize / conf.thread_step_queue_size_;
+    }
+    if (expect_thread > conf.thread_number_hard_) {
+        expect_thread = conf.thread_number_hard_;
+    }
+
+    if (expect_thread != conf.thread_number_) {
+        log_notice("start thread number: %d, expect resize to %d",
+                   conf.thread_number_, expect_thread);
+    }
+
+    // 如果当前运行的线程和实际的线程一样，就不会伸缩
+    threads_.resize_threads(expect_thread);
+
+    return;
 }
 
 
@@ -213,47 +257,6 @@ void JobExecutor::job_executor_async_run() {
 
     log_alert("JobExecutor async %#lx about to loop ...", (long)pthread_self());
 
-#if __cplusplus >= 201103L
-
-    // TODO and debug
-
-    // 只有本线程操作，所以不需要考虑并发
-    std::vector<boost::future<void>> async_tasks {};
-
-
-    while (true) {
-
-        std::weak_ptr<JobInstance> job_instance {};
-
-        // 先检查之前的任务是否都执行了
-        for (auto iter = async_tasks.begin(); iter != async_tasks.end(); /**/ ) {
-
-            if (!iter->valid()) {
-                continue;
-            }
-
-            iter = async_tasks.erase(iter);
-        }
-
-        if (!async_queue_.POP(job_instance, 1000 /*1s*/)) {
-            continue;
-        }
-
-        if (auto s_instance = job_instance.lock()) {
-
-            boost::future<void> fu = boost::async(boost::launch::async, std::ref(*s_instance));
-            async_tasks.push_back(std::move(fu));
-
-        } else {
-            log_debug("instance already release before, give up this task.");
-        }
-
-        log_info("defer thread group size: %lu", async_tasks.size());
-    }
-
-
-#else
-
     while (true) {
 
         std::weak_ptr<JobInstance> job_instance {};
@@ -277,9 +280,6 @@ void JobExecutor::job_executor_async_run() {
         }
 
     }
-
-
-#endif
 
     log_info("JobExecutor async %#lx is about to terminate ... ", (long)pthread_self());
 
@@ -305,6 +305,7 @@ int JobExecutor::module_status(std::string& module, std::string& name, std::stri
 
 int JobExecutor::module_runtime(const libconfig::Config& conf) {
 
+    // 首先是JobExecutor全局信息(比如线程池等)的动态更新
 #if 0
     int ret = service_impl_->module_runtime(conf);
 
@@ -318,6 +319,9 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
 
     return ret;
 #endif
+
+
+    // 然后针对so-handlers进行配置
 
 	return 0;
 }

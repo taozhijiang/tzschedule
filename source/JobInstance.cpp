@@ -353,7 +353,7 @@ bool JobInstance::next_trigger() {
         return false;
     }
 
-    log_debug("next trigger for %s success, for interval: %d secs.",
+    log_debug("next trigger for %s success, with next_interval: %d secs.",
               name_.c_str(), next_interval);
     return true;
 }

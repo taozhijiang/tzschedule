@@ -29,13 +29,13 @@ struct JobExecutorConf {
     int thread_number_;
     int thread_number_hard_;  // 允许最大的线程数目
     int thread_step_queue_size_;
-    int thread_max_async_;
+    int thread_number_async_;
 
     JobExecutorConf():
         thread_number_(1),
         thread_number_hard_(1),
         thread_step_queue_size_(0),
-        thread_max_async_(10) {
+        thread_number_async_(10) {
     }
 
 } __attribute__ ((aligned (4)));

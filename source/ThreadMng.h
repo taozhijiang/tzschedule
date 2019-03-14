@@ -119,7 +119,7 @@ public:
 
         std::unique_lock<std::mutex> lock(lock_);
 
-        for (auto it = threads_.begin(); it != threads_.end(); /**/ ) {
+        for (auto it = threads_.begin(); it != threads_.end(); ++ it ) {
             if ((*it)->joinable())
                 (*it)->join();
         }
