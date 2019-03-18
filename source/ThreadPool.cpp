@@ -19,7 +19,7 @@ namespace tzrpc {
 class ThreadPool::Impl {
 
 public:
-    explicit Impl(uint32_t pool_size):
+    explicit Impl(uint32_t pool_size) :
         pool_size_(pool_size) {
     }
 
@@ -31,11 +31,11 @@ public:
     Impl(const Impl&) = delete;
     Impl& operator=(const Impl&) = delete;
 
-    void callable_wrapper(ThreadObjPtr ptr){
+    void callable_wrapper(ThreadObjPtr ptr) {
 
         // 先于线程工作之前的所有预备工作
         while (ptr->status_ == ThreadStatus::kInit)
-            ::usleep(500*1000);
+            ::usleep(500 * 1000);
 
         func_(ptr);
     }
@@ -49,7 +49,7 @@ public:
         }
         func_ = func; // record it
 
-        for (uint32_t i=0; i<pool_size_; ++i) {
+        for (uint32_t i = 0; i < pool_size_; ++i) {
             ThreadObjPtr workobj(new ThreadObj(ThreadStatus::kInit));
             if (!workobj) {
                 log_err("create ThreadObj failed!");
@@ -99,7 +99,7 @@ public:
         return reduce_task(1);
     }
 
-    int resize_thread_pool(uint32_t num){
+    int resize_thread_pool(uint32_t num) {
 
         int diff = num - workers_.size();
         if (diff == 0) {
@@ -117,7 +117,7 @@ public:
         return static_cast<uint32_t>(workers_.size());
     }
 
-    void immediate_stop_tasks(){
+    void immediate_stop_tasks() {
 
         std::map<ThreadPtr, ThreadObjPtr>::iterator it;
         for (it = workers_.begin(); it != workers_.end(); ++it) {
@@ -129,7 +129,7 @@ public:
 
     void join_tasks() {
         do {
-            for (auto iter = workers_.begin(); iter != workers_.end(); ) {
+            for (auto iter = workers_.begin(); iter != workers_.end();) {
 
 #if __cplusplus >= 201103L
 
@@ -175,15 +175,15 @@ public:
 
             return false;
         }
-         log_alert("Joined Task Success ...");
+        log_alert("Joined Task Success ...");
 
         // release this thread object
-        pool_size_ --;
+        pool_size_--;
         workers_.erase(worker);
         return true;
     }
 
-    void graceful_stop_tasks(){
+    void graceful_stop_tasks() {
 
         for (auto it = workers_.begin(); it != workers_.end(); ++it) {
             it->second->status_ = ThreadStatus::kTerminating;
@@ -199,7 +199,7 @@ public:
             }
 
             // release this thread object
-            pool_size_ --;
+            pool_size_--;
             workers_.erase(it->first);
 
             log_err("current size: %ld", workers_.size());
@@ -209,7 +209,7 @@ public:
     }
 
 private:
-    int spawn_task(uint32_t num){
+    int spawn_task(uint32_t num) {
 
         for (uint32_t i = 0; i < num; ++i) {
             ThreadObjPtr workobj(new ThreadObj(ThreadStatus::kInit));
@@ -224,7 +224,7 @@ private:
             }
 
             workers_[worker] = workobj;
-            pool_size_ ++;
+            pool_size_++;
             log_alert("Created Additional Task: #%d ...", i);
 
             log_alert("Start Additional Task: #%d ...", i);
@@ -246,7 +246,7 @@ private:
 
                 it = workers_.begin();
                 graceful_stop(it->first, 10);
-                max_try --;
+                max_try--;
 
                 if (!max_try)
                     break;
@@ -277,7 +277,7 @@ bool ThreadPool::init_threads(ThreadRunnable func) {
 }
 
 bool ThreadPool::init_threads(ThreadRunnable func, uint32_t pool_size) {
-    if (pool_size == 0 || pool_size > kMaxiumThreadPoolSize ){
+    if (pool_size == 0 || pool_size > kMaxiumThreadPoolSize) {
         log_err("Invalid pool_sizeber %d, CRITICAL !!!", pool_size);
         log_err("Using default 1");
         pool_size = 1;
@@ -315,7 +315,7 @@ uint32_t ThreadPool::get_pool_size() {
 
 ThreadPool::ThreadPool(uint32_t pool_size) {
 
-    if (pool_size == 0 || pool_size > kMaxiumThreadPoolSize ){
+    if (pool_size == 0 || pool_size > kMaxiumThreadPoolSize) {
         log_err("invalid pool_sizeber %d, CRITICAL !!!", pool_size);
         ::abort();
     }

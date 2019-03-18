@@ -27,7 +27,7 @@ namespace tzrpc {
 // 配置动态更新回调函数接口类型
 // 注意keyOut的构造，输出的时候按照这个排序
 
-typedef std::function<int (std::string& module, std::string& name, std::string& val)> StatusCallable;
+typedef std::function<int(std::string& module, std::string& name, std::string& val)> StatusCallable;
 
 
 class Status {
@@ -42,7 +42,7 @@ public:
     int module_status(std::string& module, std::string& name, std::string& val);
 
 private:
-    Status():
+    Status() :
         lock_(),
         calls_() {
 
@@ -53,8 +53,7 @@ private:
 
     }
 
-    ~Status()
-        {
+    ~Status() {
     }
 
 private:

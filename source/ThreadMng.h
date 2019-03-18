@@ -23,7 +23,7 @@ class ThreadGuard {
 public:
 
     // TODO: create failed.
-    explicit ThreadGuard(TaskRunnable& run, boost::thread_group& tgroup):
+    explicit ThreadGuard(TaskRunnable& run, boost::thread_group& tgroup) :
         tgroup_(tgroup) {
         thread_ = new boost::thread(run);
         tgroup_.add_thread(thread_);
@@ -51,17 +51,17 @@ private:
     ThreadGuard& operator=(const ThreadGuard&) = delete;
 
     boost::thread_group& tgroup_;
-    boost::thread*       thread_;
+    boost::thread* thread_;
 };
 
 class ThreadMng {
 
 public:
-    explicit ThreadMng(uint8_t max_spawn_task):
+    explicit ThreadMng(uint8_t max_spawn_task) :
         max_spawn_task_(max_spawn_task) {
     }
 
-    ~ThreadMng() {}
+    ~ThreadMng() { }
 
     // 禁止拷贝
     ThreadMng(const ThreadMng&) = delete;
@@ -74,7 +74,7 @@ public:
         if (threads_.size() >= max_spawn_task_)
             return false;
 
-        std::shared_ptr<ThreadGuard> task( new ThreadGuard(run, thread_tgp_));
+        std::shared_ptr<ThreadGuard> task(new ThreadGuard(run, thread_tgp_));
         threads_.emplace_back(std::move(task));
         return true;
     }
@@ -91,7 +91,7 @@ public:
         if (threads_.size() >= max_spawn_task_)
             return false;
 
-        std::shared_ptr<ThreadGuard> task( new ThreadGuard(run, thread_tgp_));
+        std::shared_ptr<ThreadGuard> task(new ThreadGuard(run, thread_tgp_));
         threads_.emplace_back(std::move(task));
         return true;
     }
@@ -102,12 +102,12 @@ public:
         std::unique_lock<std::mutex> lock(lock_);
 
         int size = 0;
-        for (auto iter = threads_.begin(); iter != threads_.end(); /**/ ) {
-            auto curr_iter = iter ++;
+        for (auto iter = threads_.begin(); iter != threads_.end(); /**/) {
+            auto curr_iter = iter++;
             if ((*curr_iter)->joinable()) {
                 if ((*curr_iter)->try_join_for(1)) {
                     threads_.erase(curr_iter);
-                    ++ size;
+                    ++size;
                 }
             }
         }
@@ -119,7 +119,7 @@ public:
 
         std::unique_lock<std::mutex> lock(lock_);
 
-        for (auto it = threads_.begin(); it != threads_.end(); ++ it ) {
+        for (auto it = threads_.begin(); it != threads_.end(); ++it) {
             if ((*it)->joinable())
                 (*it)->join();
         }

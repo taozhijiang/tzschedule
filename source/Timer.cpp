@@ -24,7 +24,7 @@ bool TimerObject::init() {
 
     steady_timer_->expires_from_now(milliseconds(timeout_));
     steady_timer_->async_wait(
-            std::bind(&TimerObject::timer_run, shared_from_this(), std::placeholders::_1));
+        std::bind(&TimerObject::timer_run, shared_from_this(), std::placeholders::_1));
 
     log_info("successful add timer with milliseconds %lu", timeout_);
     return true;
@@ -42,7 +42,7 @@ void TimerObject::timer_run(const boost::system::error_code& ec) {
     if (forever_) {
         steady_timer_->expires_from_now(milliseconds(timeout_));
         steady_timer_->async_wait(
-                std::bind(&TimerObject::timer_run, shared_from_this(), std::placeholders::_1));
+            std::bind(&TimerObject::timer_run, shared_from_this(), std::placeholders::_1));
         log_info("renew forever timer with milliseconds %lu", timeout_);
     }
 }
@@ -55,7 +55,7 @@ void TimerObject::timer_run(const boost::system::error_code& ec) {
 
 bool Timer::add_timer(const TimerEventCallable& func, uint64_t msec, bool forever) {
     std::shared_ptr<TimerObject> timer
-            = std::make_shared<TimerObject>(io_service_, func, msec, forever);
+        = std::make_shared<TimerObject>(io_service_, func, msec, forever);
 
     if (!timer || !timer->init()) {
         log_err("create and init timer failed.");
@@ -67,7 +67,7 @@ bool Timer::add_timer(const TimerEventCallable& func, uint64_t msec, bool foreve
 // 增强版的定时器，返回TimerObject，可以控制定时器的取消
 std::shared_ptr<TimerObject> Timer::add_better_timer(const TimerEventCallable& func, uint64_t msec, bool forever) {
     std::shared_ptr<TimerObject> timer
-            = std::make_shared<TimerObject>(io_service_, func, msec, forever);
+        = std::make_shared<TimerObject>(io_service_, func, msec, forever);
 
     if (!timer || !timer->init()) {
         log_err("create and init timer failed.");

@@ -31,14 +31,14 @@ struct JobExecutorConf {
     int thread_step_queue_size_;
     int thread_number_async_;
 
-    JobExecutorConf():
+    JobExecutorConf() :
         thread_number_(1),
         thread_number_hard_(1),
         thread_step_queue_size_(0),
         thread_number_async_(10) {
     }
 
-} __attribute__ ((aligned (4)));
+} __attribute__((aligned(4)));
 
 
 
@@ -62,7 +62,7 @@ private:
 
     JobExecutorConf conf_;
 
-    std::mutex      lock_;
+    std::mutex lock_;
     std::map<std::string, std::shared_ptr<JobInstance>> tasks_;
 
     bool parse_handle_conf(const libconfig::Setting& setting);
@@ -105,8 +105,8 @@ public:
 
 private:
 
-    JobExecutor(){}
-    virtual ~JobExecutor(){}
+    JobExecutor() { }
+    virtual ~JobExecutor() { }
 
     // 禁止拷贝
     JobExecutor(const JobExecutor&) = delete;

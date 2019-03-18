@@ -16,7 +16,7 @@ namespace tzrpc {
 
 // Log Store
 
-typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
+typedef void (* CP_log_store_func_t)(int priority, const char* format, ...);
 extern CP_log_store_func_t checkpoint_log_store_func_impl_;
 void set_checkpoint_log_store_func(CP_log_store_func_t func);
 

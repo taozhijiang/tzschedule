@@ -4,7 +4,8 @@
 #include "../../Log.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 
@@ -18,7 +19,7 @@ int module_exit() {
 
 int so_handler(const msg_t* req, msg_t* rsp) {
 
-    tzrpc::log_debug("async job running log, thread %lx ...",(long)pthread_self());
+    tzrpc::log_debug("async job running log, thread %lx ...", (long)pthread_self());
     return 0;
 }
 

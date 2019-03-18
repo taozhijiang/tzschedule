@@ -18,7 +18,7 @@ void usage();
 void show_vcs_info();
 int create_process_pid();
 
-char cfgFile[PATH_MAX] {};
+char cfgFile[PATH_MAX]{};
 bool daemonize = false;
 
 int main(int argc, char* argv[]) {
@@ -26,9 +26,8 @@ int main(int argc, char* argv[]) {
     strncpy(cfgFile, program_invocation_short_name, strlen(program_invocation_short_name));
     strcat(cfgFile, ".conf");
     int opt_g = 0;
-    while( (opt_g = getopt(argc, argv, "c:dhv")) != -1 ) {
-        switch(opt_g)
-        {
+    while ((opt_g = getopt(argc, argv, "c:dhv")) != -1) {
+        switch (opt_g) {
             case 'c':
                 memset(cfgFile, 0, sizeof(cfgFile));
                 strncpy(cfgFile, optarg, PATH_MAX);
@@ -46,7 +45,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::cout << "current system cfg file [" <<  cfgFile << "]."  << std::endl;
+    std::cout << "current system cfg file [" << cfgFile << "]." << std::endl;
     // display build version info.
     show_vcs_info();
 
@@ -81,6 +80,7 @@ int main(int argc, char* argv[]) {
         bool chdir = false; // leave the current working directory in case
                             // the user has specified relative paths for
                             // the config file, etc
+
         bool close = true;  // close stdin, stdout, stderr
         if (::daemon(!chdir, !close) != 0) {
             tzrpc::log_err("call to daemon() failed: %s.", strerror(errno));
@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::time_t now = boost::chrono::system_clock::to_time_t(boost::chrono::system_clock::now());
-    char mbstr[32] {};
+    char mbstr[32]{};
     std::strftime(mbstr, sizeof(mbstr), "%F %T", std::localtime(&now));
     tzrpc::log_info("service started at %s", mbstr);
 

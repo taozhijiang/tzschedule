@@ -18,20 +18,20 @@ namespace tzrpc {
 
 
 
-// meta char:  * , - / 
+// meta char:  * , - /
 // 根据指定的时间设置字符串，解析出下面的interval point成员
 
 
 
 // 用来解析 时、分、秒的
 template<std::size_t N>
-bool SchTime::parse_subtime(const std::string& sch_str, std::bitset<N> & store) {
+bool SchTime::parse_subtime(const std::string& sch_str, std::bitset<N>& store) {
 
     int max_val = static_cast<int>(N); // ignore warning
     std::vector<std::string> vec;
     boost::split(vec, sch_str, boost::is_any_of(","));
 
-    for (size_t i=0; i<vec.size(); ++i) {
+    for (size_t i = 0; i < vec.size(); ++i) {
 
         if (vec[i].find('*') != std::string::npos) {
             // *
@@ -54,8 +54,8 @@ bool SchTime::parse_subtime(const std::string& sch_str, std::bitset<N> & store) 
                 return true;
             } else {
                 int time_i = ::atoi(time_istr.c_str());
-                if (time_i > 0 && time_i < max_val ) {
-                    for (auto j = 0; j<max_val; j=j+time_i) {
+                if (time_i > 0 && time_i < max_val) {
+                    for (auto j = 0; j < max_val; j = j + time_i) {
                         store.set(j);
                     }
                 } else {
@@ -82,14 +82,14 @@ bool SchTime::parse_subtime(const std::string& sch_str, std::bitset<N> & store) 
 
             if (from < 0 || to < 0 ||
                 from > max_val || to > max_val ||
-                from >= to ) {
+                from >= to) {
                 log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
                 return false;
             }
 
             while (from <= to) {
                 store.set(from);
-                ++ from;
+                ++from;
             }
         }
 
@@ -123,12 +123,12 @@ bool SchTime::parse(const std::string& sch_str) {
     boost::split(sub, sch_str, boost::is_any_of(" \t\n"));
 
     // 删除连接处的可能空白字符
-    for (auto it=sub.begin(); it!=sub.end(); ) {
+    for (auto it = sub.begin(); it != sub.end();) {
         StrUtil::trim_whitespace(*it);
         if (it->empty()) {
             it = sub.erase(it);
         } else {
-            ++ it;
+            ++it;
         }
     }
 
@@ -155,8 +155,7 @@ bool SchTime::parse(const std::string& sch_str) {
         return false;
     }
 
-    if ( sec_tp_.none() || min_tp_.none() || hour_tp_.none() )
-    {
+    if (sec_tp_.none() || min_tp_.none() || hour_tp_.none()) {
         log_err("integrity check failed...");
         return false;
     }
@@ -181,7 +180,7 @@ template<std::size_t N>
 uint8_t SchTime::find_ge_of(const std::bitset<N>& bits, int from) {
 
     // 从from开始向尾查找，如果查找不到就返回负数
-    for (int i=from; i<N; ++i) {
+    for (int i = from; i < N; ++i) {
         if (bits.test(i)) {
             return i;
         }
@@ -205,39 +204,20 @@ int32_t SchTime::next_interval(time_t from) {
 
     int& next_sec = tm_time.tm_sec;
     int& next_min = tm_time.tm_min;
-    int& next_hour= tm_time.tm_hour;
+    int& next_hour = tm_time.tm_hour;
 
-try {
+    try {
 
-    do {
+        do {
 
-        if (!hour_tp_.test(next_hour))
-        {
-            next_hour = find_ge_of(hour_tp_, next_hour + 1);
-            if (next_hour == 0) {
-                next_hour = find_ge_of(hour_tp_, 0);
-            }
-            next_min = find_ge_of(min_tp_, 0);
-            next_sec = find_ge_of(sec_tp_, 0);
-        }
-        else if (!min_tp_.test(next_min))
-        {
-            next_min = find_ge_of(min_tp_, next_min + 1);
-            if (next_min == 0) {
-                next_min = find_ge_of(min_tp_, 0);
+            if (!hour_tp_.test(next_hour)) {
                 next_hour = find_ge_of(hour_tp_, next_hour + 1);
                 if (next_hour == 0) {
                     next_hour = find_ge_of(hour_tp_, 0);
                 }
-            }
-            next_sec = find_ge_of(sec_tp_, 0);
-        }
-        else
-        {
-            next_sec = find_ge_of(sec_tp_, next_sec + 1);
-            if (next_sec == 0) {
+                next_min = find_ge_of(min_tp_, 0);
                 next_sec = find_ge_of(sec_tp_, 0);
-
+            } else if (!min_tp_.test(next_min)) {
                 next_min = find_ge_of(min_tp_, next_min + 1);
                 if (next_min == 0) {
                     next_min = find_ge_of(min_tp_, 0);
@@ -246,33 +226,47 @@ try {
                         next_hour = find_ge_of(hour_tp_, 0);
                     }
                 }
+                next_sec = find_ge_of(sec_tp_, 0);
+            } else {
+                next_sec = find_ge_of(sec_tp_, next_sec + 1);
+                if (next_sec == 0) {
+                    next_sec = find_ge_of(sec_tp_, 0);
+
+                    next_min = find_ge_of(min_tp_, next_min + 1);
+                    if (next_min == 0) {
+                        next_min = find_ge_of(min_tp_, 0);
+                        next_hour = find_ge_of(hour_tp_, next_hour + 1);
+                        if (next_hour == 0) {
+                            next_hour = find_ge_of(hour_tp_, 0);
+                        }
+                    }
+                }
             }
-        }
 
-        // 最终合法性校验
-        if (next_sec < 0 || next_min < 0 || next_hour < 0 ||
-            next_sec > 60 || next_min >=60 || next_hour > 23 ) {
-            log_err("find next_interval failed...");
-            log_err("next_hour: %d, next_min: %d, next_sec:%d ",
-                    next_hour, next_min, next_sec);
-            return -1;
-        }
+            // 最终合法性校验
+            if (next_sec < 0 || next_min < 0 || next_hour < 0 ||
+                next_sec > 60 || next_min >= 60 || next_hour > 23) {
+                log_err("find next_interval failed...");
+                log_err("next_hour: %d, next_min: %d, next_sec:%d ",
+                        next_hour, next_min, next_sec);
+                return -1;
+            }
 
-        next_tm = ::mktime(&tm_time) - from;
-        if (next_tm < 0) { // 日期溢出了
-            log_debug("overflow day switch from %d-%d-%d %d:%d:%d",
-                      tm_time.tm_year + 1900, tm_time.tm_mon, tm_time.tm_mday,
-                      tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
-            next_tm += 24 * 60 * 60;
-            log_debug("new next_tm: %ld", next_tm);
-        }
+            next_tm = ::mktime(&tm_time) - from;
+            if (next_tm < 0) { // 日期溢出了
+                log_debug("overflow day switch from %d-%d-%d %d:%d:%d",
+                          tm_time.tm_year + 1900, tm_time.tm_mon, tm_time.tm_mday,
+                          tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
+                next_tm += 24 * 60 * 60;
+                log_debug("new next_tm: %ld", next_tm);
+            }
 
-    } while (0);
+        } while (0);
 
-} catch (std::exception& e) {
-    log_err("invalid idx accessed: %s", e.what());
-    return -1;
-}
+    } catch (std::exception& e) {
+        log_err("invalid idx accessed: %s", e.what());
+        return -1;
+    }
 
     return static_cast<int32_t>(next_tm);
 }
@@ -297,7 +291,7 @@ bool JobInstance::init() {
         return false;
     }
 
-    so_handler_.reset( new SoWrapperFunc(so_path_) );
+    so_handler_.reset(new SoWrapperFunc(so_path_));
     if (!so_handler_ || !so_handler_->init()) {
         log_err("create and init so_handler failed.");
         return false;
@@ -344,10 +338,10 @@ bool JobInstance::next_trigger() {
 
     if (exec_method_ == ExecuteMethod::kExecDefer) {
         timer_ = Timer::instance().add_better_timer(
-            std::bind(JE_add_task_defer, shared_from_this()), next_interval * 1000, false);
-    } else if (exec_method_ == ExecuteMethod::kExecAsync ) {
+                 std::bind(JE_add_task_defer, shared_from_this()), next_interval * 1000, false);
+    } else if (exec_method_ == ExecuteMethod::kExecAsync) {
         timer_ = Timer::instance().add_better_timer(
-            std::bind(JE_add_task_async, shared_from_this()), next_interval * 1000, false);
+                 std::bind(JE_add_task_async, shared_from_this()), next_interval * 1000, false);
     } else {
         log_err("unknown exec_method: %d", static_cast<int32_t>(exec_method_));
         return false;

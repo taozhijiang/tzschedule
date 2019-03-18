@@ -27,9 +27,9 @@ class SLibLoader;
 
 class SoWrapper {
 public:
-    explicit SoWrapper(const std::string& dl_path):
+    explicit SoWrapper(const std::string& dl_path) :
         dl_path_(dl_path),
-        dl_({}) {
+        dl_({ }) {
     }
 
     bool load_dl();
@@ -41,21 +41,21 @@ protected:
 
 
 // 默认的handle函数，后续如有需求，则再进行扩充
-class SoWrapperFunc: public SoWrapper {
+class SoWrapperFunc : public SoWrapper {
 
 public:
-    explicit SoWrapperFunc(const std::string& dl_path):
+    explicit SoWrapperFunc(const std::string& dl_path) :
         SoWrapper(dl_path) {
     }
 
     bool init();
 
-    int operator()();
+    int operator ()();
 
     // 下面的暂时没用上
-    int operator()(const std::string& req);
-    int operator()(std::string& rsp);
-    int operator()(const std::string& req, std::string& rsp);
+    int operator ()(const std::string& req);
+    int operator ()(std::string& rsp);
+    int operator ()(const std::string& req, std::string& rsp);
 
 private:
     so_handler_t func_;

@@ -18,20 +18,20 @@ namespace tzrpc {
 /* This array will store all of the mutexes available to OpenSSL. */
 static pthread_mutex_t* mutex_buf = NULL;
 // 静态锁的数目
-static long*            mutex_count = 0;
+static long* mutex_count = 0;
 // 全局只需要一个SSL_CTX，一旦设置之后就不应该修改它，
 // 所有的SSL都在这个ctx上面创建
 SSL_CTX* global_ssl_ctx = NULL;
 
-static void pthreads_locking_callback(int mode, int type, char *file,
-         int line) {
+static void pthreads_locking_callback(int mode, int type, char* file,
+                                      int line) {
 #if 0
     fprintf(stderr,"thread=%4d mode=%s lock=%s %s:%d\n",
-        CRYPTO_thread_id(),
-        (mode&CRYPTO_LOCK)?"l":"u",
-        (type&CRYPTO_READ)?"r":"w",file,line);
+            CRYPTO_thread_id(),
+            (mode&CRYPTO_LOCK)?"l":"u",
+            (type&CRYPTO_READ)?"r":"w",file,line);
 #endif
-    if (mode & CRYPTO_LOCK){
+    if (mode & CRYPTO_LOCK) {
         pthread_mutex_lock(&(mutex_buf[type]));
         mutex_count[type]++;
     } else {
@@ -49,8 +49,8 @@ static void handle_error(const char *file, int lineno, const char *msg) {
 static unsigned long pthreads_thread_id(void) {
     unsigned long ret;
 
-    ret=(unsigned long)pthread_self();
-    return(ret);
+    ret = (unsigned long)pthread_self();
+    return (ret);
 }
 
 static SSL_CTX* ssl_setup_client_ctx() {
@@ -66,21 +66,21 @@ static SSL_CTX* ssl_setup_client_ctx() {
 
 bool Ssl_thread_setup() {
 
-    mutex_buf = (pthread_mutex_t *)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
-    mutex_count = (long *)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(long));
+    mutex_buf = (pthread_mutex_t*)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
+    mutex_count = (long*)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(long));
 
     if (!mutex_buf || !mutex_count) {
         log_err("Alloc Ssl thread resource failed!");
         return false;
     }
 
-    for (int i=0; i<CRYPTO_num_locks(); ++i) {
+    for (int i = 0; i < CRYPTO_num_locks(); ++i) {
         mutex_count[i] = 0;
         pthread_mutex_init(&(mutex_buf[i]), NULL);
     }
 
-    CRYPTO_set_id_callback((unsigned long (*)())pthreads_thread_id);
-    CRYPTO_set_locking_callback((void (*)(int, int, const char*, int))pthreads_locking_callback);
+    CRYPTO_set_id_callback((unsigned long (* )())pthreads_thread_id);
+    CRYPTO_set_locking_callback((void (* )(int, int, const char*, int))pthreads_locking_callback);
 
     // SSL common routine setup
     if (!SSL_library_init()) {
@@ -96,7 +96,7 @@ bool Ssl_thread_setup() {
     }
 
     // 屏蔽不安全的SSLv2协议
-    SSL_CTX_set_options(global_ssl_ctx, SSL_OP_ALL|SSL_OP_NO_SSLv2);
+    SSL_CTX_set_options(global_ssl_ctx, SSL_OP_ALL | SSL_OP_NO_SSLv2);
 
     // The flag SSL_MODE_AUTO_RETRY will cause read/write operations
     // to only return after the handshake and successful completion
@@ -121,11 +121,10 @@ void Ssl_thread_clean() {
     CRYPTO_set_id_callback(NULL);
     CRYPTO_set_locking_callback(NULL);
 
-    for (int i=0; i<CRYPTO_num_locks(); ++i)
-    {
+    for (int i = 0; i < CRYPTO_num_locks(); ++i) {
         pthread_mutex_destroy(&(mutex_buf[i]));
-        fprintf(stderr,"%8ld:%s\n", mutex_count[i],
-            CRYPTO_get_lock_name(i));
+        fprintf(stderr, "%8ld:%s\n", mutex_count[i],
+                CRYPTO_get_lock_name(i));
     }
 
     OPENSSL_free(mutex_buf);

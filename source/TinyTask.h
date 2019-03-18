@@ -24,24 +24,24 @@
 
 namespace tzrpc {
 
-class TinyTask: public std::enable_shared_from_this<TinyTask> {
+class TinyTask : public std::enable_shared_from_this<TinyTask> {
 
 public:
 
-    explicit TinyTask(uint8_t max_spawn_task):
+    explicit TinyTask(uint8_t max_spawn_task) :
         max_spawn_task_(max_spawn_task),
         thread_mng_(max_spawn_task) {
     }
 
-    ~TinyTask() {}
+    ~TinyTask() { }
 
     // 禁止拷贝
     TinyTask(const TinyTask&) = delete;
     TinyTask& operator=(const TinyTask&) = delete;
 
-    bool init(){
+    bool init() {
         thread_run_.reset(new boost::thread(std::bind(&TinyTask::run, shared_from_this())));
-        if (!thread_run_){
+        if (!thread_run_) {
             printf("create run work thread failed! ");
             return false;
         }
@@ -58,7 +58,6 @@ public:
         return max_spawn_task_ - thread_mng_.current_size();
     }
 
-
 private:
     void run() {
 
@@ -66,13 +65,13 @@ private:
 
         while (true) {
 
-            std::vector<TaskRunnable> tasks {};
+            std::vector<TaskRunnable> tasks{};
             size_t count = tasks_.POP(tasks, max_spawn_task_, 1000);
-            if( !count ){  // 空闲
+            if (!count) {  // 空闲
                 continue;
             }
 
-            for(size_t i=0; i<tasks.size(); ++i) {
+            for (size_t i = 0; i < tasks.size(); ++i) {
                 thread_mng_.add_task(tasks[i]);
             }
 

@@ -22,16 +22,16 @@ namespace tzrpc {
 template<typename T>
 class EQueue {
 public:
-    EQueue() {}
-    virtual ~EQueue() {}
+    EQueue() { }
+    virtual ~EQueue() { }
 
-    void PUSH(const T& t){
+    void PUSH(const T& t) {
         std::lock_guard<std::mutex> lock(lock_);
         items_.push_back(t);
         item_notify_.notify_one();
     }
 
-    template< typename InputIt >
+    template<typename InputIt>
     void PUSH(InputIt first, InputIt last) {
         std::lock_guard<std::mutex> lock(lock_);
         items_.insert(items_.end(), first, last);
@@ -83,7 +83,7 @@ public:
             // 如果是伪唤醒，则还需要检查items_是否为空，如果是空则继续睡眠
 
 #if __cplusplus >= 201103L
-            if (item_notify_.wait_until(lock, expire_tp) == std::cv_status::timeout){
+            if (item_notify_.wait_until(lock, expire_tp) == std::cv_status::timeout) {
                 break;
             }
 #else
@@ -103,8 +103,8 @@ public:
             T t = items_.front();
             items_.pop_front();
             vec.emplace_back(t);
-            ++ ret_count;
-        } while ( ret_count < max_count && !items_.empty());
+            ++ret_count;
+        } while (ret_count < max_count && !items_.empty());
 
         return ret_count;
     }
@@ -123,7 +123,7 @@ public:
             // 如果是伪唤醒，则还需要检查items_是否为空，如果是空则继续睡眠
 
 #if __cplusplus >= 201103L
-            if (item_notify_.wait_until(lock, expire_tp) == std::cv_status::timeout){
+            if (item_notify_.wait_until(lock, expire_tp) == std::cv_status::timeout) {
                 break;
             }
 #else

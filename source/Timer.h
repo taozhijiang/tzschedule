@@ -20,16 +20,16 @@ using boost::asio::steady_timer;
 
 // 提供定时回调接口服务
 
-typedef std::function<void (const boost::system::error_code& ec)> TimerEventCallable;
+typedef std::function<void(const boost::system::error_code& ec)> TimerEventCallable;
 
 namespace tzrpc {
 
-class TimerObject: public std::enable_shared_from_this<TimerObject> {
+class TimerObject : public std::enable_shared_from_this<TimerObject> {
 
 public:
     TimerObject(boost::asio::io_service& ioservice,
                 const TimerEventCallable& func, uint64_t msec,
-                bool forever):
+                bool forever) :
         io_service_(ioservice),
         steady_timer_(),
         func_(func),
@@ -81,12 +81,12 @@ public:
     }
 
     void threads_join() {
-		work_guard_.reset();
+        work_guard_.reset();
         io_service_thread_.join();
     }
 
     boost::asio::io_service& get_io_service() {
-        return  io_service_;
+        return io_service_;
     }
 
 
@@ -94,13 +94,12 @@ public:
     bool add_timer(const TimerEventCallable& func, uint64_t msec, bool forever);
     std::shared_ptr<TimerObject> add_better_timer(const TimerEventCallable& func, uint64_t msec, bool forever);
 
-
 private:
 
-    Timer():
+    Timer() :
         io_service_thread_(),
         io_service_(),
-        work_guard_(new boost::asio::io_service::work(io_service_)){
+        work_guard_(new boost::asio::io_service::work(io_service_)) {
     }
 
     ~Timer() {

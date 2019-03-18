@@ -5,7 +5,7 @@
  *
  */
 
- 
+
 #include <xtra_rhel.h>
 
 #include <boost/algorithm/string.hpp>
@@ -21,8 +21,8 @@ bool log_init(int log_level) {
     // close first, then initialize with new LOG_LEVEL
     closelog();
 
-    openlog(program_invocation_short_name, LOG_PID , LOG_LOCAL6);
-    setlogmask (LOG_UPTO (log_level));
+    openlog(program_invocation_short_name, LOG_PID, LOG_LOCAL6);
+    setlogmask(LOG_UPTO(log_level));
     return true;
 }
 
@@ -32,10 +32,10 @@ void log_close() {
     closelog();
 }
 
-static const std::size_t MAX_LOG_BUF_SIZE = (16*1024 -2);
-void log_api(int priority, const char *file, int line, const char *func, const char *msg, ...) {
+static const std::size_t MAX_LOG_BUF_SIZE = (16 * 1024 - 2);
+void log_api(int priority, const char* file, int line, const char* func, const char* msg, ...) {
 
-    char buf[MAX_LOG_BUF_SIZE + 2] = {0, };
+    char buf[MAX_LOG_BUF_SIZE + 2] = { 0, };
     int n = snprintf(buf, MAX_LOG_BUF_SIZE, "[%s:%d][%s][%#lx] -- ", file, line, func, (long)pthread_self());
 
     va_list arg_ptr;
@@ -61,7 +61,7 @@ void log_api(int priority, const char *file, int line, const char *func, const c
     // 拆分消息
     std::vector<std::string> messages;
     boost::split(messages, buf, boost::is_any_of("\r\n"));
-    for (std::vector<std::string>::iterator it = messages.begin(); it != messages.end(); ++it){
+    for (std::vector<std::string>::iterator it = messages.begin(); it != messages.end(); ++it) {
         if (!it->empty()) {
             std::string message = (*it) + "\n";
             if (checkpoint_log_store_func_impl_) {

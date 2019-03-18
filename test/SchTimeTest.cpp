@@ -10,10 +10,10 @@ using namespace tzrpc;
 
 TEST(SchTimeTest, SchTimeParseTest) {
 
-	std::string test_sch = "* * *";
-	SchTime schTm{};
-	
-	ASSERT_THAT(schTm.parse(test_sch), Eq(true));
+    std::string test_sch = "* * *";
+    SchTime schTm{};
+
+    ASSERT_THAT(schTm.parse(test_sch), Eq(true));
 //    log_debug("%s =>\n %s", test_sch.c_str(), schTm.str().c_str());
 
     test_sch = "0 3 4";
@@ -93,7 +93,7 @@ TEST(SchTimeTest, SchTimeNextTest2) {
     test_sch = "* 2 *";
     ASSERT_THAT(schTm.parse(test_sch), Eq(true));
     next_i = schTm.next_interval(FROM);
-    ASSERT_THAT(next_i, Eq(2*60 - 58));
+    ASSERT_THAT(next_i, Eq(2 * 60 - 58));
 
     log_debug("SchTimeNextTest2 finished.");
 }
@@ -104,7 +104,7 @@ TEST(SchTimeTest, SchTimeNextTest3) {
     // 在线 http://www.matools.com/crontab 进行校验
     // http://tool.chinaz.com/Tools/unixtime.aspx
     // '2018-04-30 00:00:00' ==> 1525017600
-    time_t FROM = 1525017600L + 24*60*60 - 2;
+    time_t FROM = 1525017600L + 24 * 60 * 60 - 2;
 
     std::string test_sch = "*/3 * *";
     SchTime schTm{};
@@ -127,7 +127,7 @@ TEST(SchTimeTest, SchTimeNextTest3) {
     test_sch = "* 2 *";
     ASSERT_THAT(schTm.parse(test_sch), Eq(true));
     next_i = schTm.next_interval(FROM);
-    ASSERT_THAT(next_i, Eq(2*60 + 2));
+    ASSERT_THAT(next_i, Eq(2 * 60 + 2));
 
     log_debug("SchTimeNextTest3 finished.");
 }

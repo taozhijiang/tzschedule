@@ -22,7 +22,7 @@ bool ConfHelper::init(std::string cfgfile) {
 
     cfgfile_ = cfgfile;
 
-    conf_ptr_.reset( new libconfig::Config() );
+    conf_ptr_.reset(new libconfig::Config());
     if (!conf_ptr_) {
         log_err("create libconfig failed.");
         return false;
@@ -31,13 +31,13 @@ bool ConfHelper::init(std::string cfgfile) {
     // try load and explain the cfg_file first.
     try {
         conf_ptr_->readFile(cfgfile.c_str());
-    } catch(libconfig::FileIOException &fioex) {
+    } catch (libconfig::FileIOException& fioex) {
         fprintf(stderr, "I/O error while reading file: %s.", cfgfile.c_str());
-        log_err( "I/O error while reading file: %s.", cfgfile.c_str());
+        log_err("I/O error while reading file: %s.", cfgfile.c_str());
         conf_ptr_.reset();
-    } catch(libconfig::ParseException &pex) {
+    } catch (libconfig::ParseException& pex) {
         fprintf(stderr, "Parse error at %d - %s", pex.getLine(), pex.getError());
-        log_err( "Parse error at %d - %s", pex.getLine(), pex.getError());
+        log_err("Parse error at %d - %s", pex.getLine(), pex.getError());
         conf_ptr_.reset();
     }
 
@@ -47,9 +47,9 @@ bool ConfHelper::init(std::string cfgfile) {
     }
 
     Status::instance().register_status_callback(
-            "ConfHelper",
-            std::bind(&ConfHelper::module_status, this,
-                      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        "ConfHelper",
+        std::bind(&ConfHelper::module_status, this,
+                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 
     return true;
@@ -93,14 +93,14 @@ int ConfHelper::update_runtime_conf() {
 
 int ConfHelper::register_runtime_callback(const std::string& name, ConfUpdateCallable func) {
 
-    if (name.empty() || !func){
+    if (name.empty() || !func) {
         log_err("invalid name or func param.");
         return -1;
     }
 
     std::lock_guard<std::mutex> lock(lock_);
-    calls_.push_back({name, func});
-    log_debug("register runtime for %s success.",  name.c_str());
+    calls_.push_back({ name, func });
+    log_debug("register runtime for %s success.", name.c_str());
 
     return 0;
 }
@@ -109,14 +109,14 @@ int ConfHelper::register_runtime_callback(const std::string& name, ConfUpdateCal
 int ConfHelper::module_status(std::string& module, std::string& name, std::string& val) {
 
     module = "tzrpc";
-    name   = "ConfHelper";
+    name = "ConfHelper";
 
     std::stringstream ss;
     ss << "registered runtime update: " << std::endl;
 
     int i = 1;
     for (auto it = calls_.begin(); it != calls_.end(); ++it) {
-        ss << "\t" << i++ << ". "<< it->first << std::endl;
+        ss << "\t" << i++ << ". " << it->first << std::endl;
     }
 
     val = ss.str();

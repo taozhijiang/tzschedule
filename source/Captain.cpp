@@ -29,8 +29,8 @@ Captain& Captain::instance() {
     return service;
 }
 
-Captain::Captain():
-    initialized_(false){
+Captain::Captain() :
+    initialized_(false) {
 }
 
 
@@ -46,13 +46,13 @@ bool Captain::init(const std::string& cfgFile) {
         return false;
     }
 
-    if(!ConfHelper::instance().init(cfgFile)) {
+    if (!ConfHelper::instance().init(cfgFile)) {
         log_err("init ConfHelper (%s) failed, critical !!!!", cfgFile.c_str());
         return false;
     }
 
     auto conf_ptr = ConfHelper::instance().get_conf();
-    if(!conf_ptr) {
+    if (!conf_ptr) {
         log_err("ConfHelper return null conf pointer, maybe your conf file ill!");
         return false;
     }
@@ -67,7 +67,7 @@ bool Captain::init(const std::string& cfgFile) {
     log_init(log_level);
     log_notice("initialized log with level: %d", log_level);
 
-    if(!JobExecutor::instance().init(*conf_ptr)){
+    if (!JobExecutor::instance().init(*conf_ptr)) {
         log_err("JobExecutor init failed, critital.");
         return false;
     }

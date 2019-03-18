@@ -26,7 +26,7 @@
 namespace tzrpc {
 
 // 配置动态更新回调函数接口类型
-typedef std::function<int (const libconfig::Config& cfg)> ConfUpdateCallable;
+typedef std::function<int(const libconfig::Config& cfg)> ConfUpdateCallable;
 
 class ConfHelper {
 
@@ -37,8 +37,8 @@ public:
     bool init(std::string cfgfile);
 
     // 配置更新的调用入口函数
-    int  update_runtime_conf();
-    int  register_runtime_callback(const std::string& name, ConfUpdateCallable func);
+    int update_runtime_conf();
+    int register_runtime_callback(const std::string& name, ConfUpdateCallable func);
 
     int module_status(std::string& module, std::string& name, std::string& val);
 
@@ -55,11 +55,11 @@ public:
 
     // 模板函数，方便快速简洁获取配置
     // 这边保证conf_ptr_始终是可用的，否则整个系统在初始化的时候就失败了
-    template <typename T>
+    template<typename T>
     bool get_conf_value(const std::string& key, T& t) {
 
         // 超过10min，重新读取配置文件，尝试
-        if (conf_update_time_ < ::time(NULL) - 10*60 ) {
+        if (conf_update_time_ < ::time(NULL) - 10 * 60) {
 
             log_debug("reloading config file, last update interval was %ld secs",
                       ::time(NULL) - conf_update_time_);
@@ -83,7 +83,6 @@ public:
         return false;
     }
 
-
 private:
 
     std::shared_ptr<libconfig::Config> load_conf_file() {
@@ -96,10 +95,10 @@ private:
 
         try {
             conf->readFile(cfgfile_.c_str());
-        } catch(libconfig::FileIOException &fioex) {
+        } catch (libconfig::FileIOException& fioex) {
             log_err("I/O error while reading file: %s.", cfgfile_.c_str());
             conf.reset();
-        } catch(libconfig::ParseException &pex) {
+        } catch (libconfig::ParseException& pex) {
             log_err("Parse error at %d - %s", pex.getLine(), pex.getError());
             conf.reset();
         }
@@ -107,13 +106,13 @@ private:
         return conf;
     }
 
-    ConfHelper():
-        cfgfile_(), 
-        conf_ptr_(), 
+    ConfHelper() :
+        cfgfile_(),
+        conf_ptr_(),
         in_process_(false) {
     }
 
-    virtual ~ConfHelper(){}
+    virtual ~ConfHelper() { }
 
     // 禁止拷贝
     ConfHelper(const ConfHelper&) = delete;

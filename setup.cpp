@@ -22,9 +22,9 @@ void show_vcs_info();
 int create_process_pid();
 
 
-static void interrupted_callback(int signal){
+static void interrupted_callback(int signal) {
     tzrpc::log_alert("Signal %d received ...", signal);
-    switch(signal) {
+    switch (signal) {
         case SIGHUP:
             tzrpc::log_notice("SIGHUP recv, do update_run_conf... ");
             tzrpc::ConfHelper::instance().update_runtime_conf();
@@ -46,16 +46,16 @@ static void interrupted_callback(int signal){
     }
 }
 
-void init_signal_handle(){
+void init_signal_handle() {
 
     ::signal(SIGPIPE, SIG_IGN);
     ::signal(SIGUSR1, interrupted_callback);
-    ::signal(SIGHUP,  interrupted_callback);
+    ::signal(SIGHUP, interrupted_callback);
 
     return;
 }
 
-extern char * program_invocation_short_name;
+extern char* program_invocation_short_name;
 void usage() {
     std::stringstream ss;
 
@@ -68,15 +68,15 @@ void usage() {
     std::cout << ss.str();
 }
 
-void show_vcs_info () {
+void show_vcs_info() {
 
     std::cout << " THIS RELEASE OF " << program_invocation_short_name << std::endl;
 
-    extern const char *build_commit_version;
-    extern const char *build_commit_branch;
-    extern const char *build_commit_date;
-    extern const char *build_commit_author;
-    extern const char *build_time;
+    extern const char* build_commit_version;
+    extern const char* build_commit_branch;
+    extern const char* build_commit_date;
+    extern const char* build_commit_author;
+    extern const char* build_time;
 
     std::cout << build_commit_version << std::endl;
     std::cout << build_commit_branch << std::endl;

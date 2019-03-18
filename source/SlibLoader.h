@@ -21,7 +21,7 @@ namespace tzrpc {
 
 class SLibLoader {
 public:
-    SLibLoader(const std::string& dl_path):
+    SLibLoader(const std::string& dl_path) :
         dl_path_(dl_path),
         dl_handle_(NULL) {
     }
@@ -45,23 +45,23 @@ public:
 
         // Reset errors
         dlerror();
-        char *err_info = NULL;
+        char* err_info = NULL;
 
         module_init_ = (module_init_t)dlsym(dl_handle_, "module_init");
-        if ((err_info = dlerror()) != NULL ) {
+        if ((err_info = dlerror()) != NULL) {
             log_err("Load func module_init failed: %s", err_info);
             return false;
         }
 
         // 调用module_init函数
         int ret_code = (*module_init_)();
-        if( ret_code != 0) {
+        if (ret_code != 0) {
             log_err("call module_init failed: %d", ret_code);
             return false;
         }
 
         module_exit_ = (module_exit_t)dlsym(dl_handle_, "module_exit");
-        if ((err_info = dlerror()) != NULL ) {
+        if ((err_info = dlerror()) != NULL) {
             log_err("Load func module_exit failed: %s", err_info);
             return false;
         }
@@ -79,10 +79,10 @@ public:
         }
 
         dlerror();
-        char *err_info = NULL;
+        char* err_info = NULL;
 
         FuncType func_t = (FuncType)dlsym(dl_handle_, func_name.c_str());
-        if ((err_info = dlerror()) != NULL ) {
+        if ((err_info = dlerror()) != NULL) {
             log_err("Load func %s failed: %s", func_name.c_str(), err_info);
             return false;
         }
@@ -95,7 +95,7 @@ public:
     void close() {
         if (dl_handle_) {
 
-            if(module_exit_) {
+            if (module_exit_) {
                 (*module_exit_)();
                 module_exit_ = NULL;
                 log_alert("module_exit from %s called!", dl_path_.c_str());
@@ -118,8 +118,8 @@ private:
     module_exit_t module_exit_;
 
 private:
-    std::string  dl_path_;
-    void*        dl_handle_;
+    std::string dl_path_;
+    void* dl_handle_;
 };
 
 } // end namespace tzrpc

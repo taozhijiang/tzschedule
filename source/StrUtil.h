@@ -24,10 +24,10 @@ namespace tzrpc {
 
 struct StrUtil {
 
-    static const int kMaxBuffSize = 2*8190;
-    static std::string str_format(const char * fmt, ...) {
+    static const int kMaxBuffSize = 2 * 8190;
+    static std::string str_format(const char* fmt, ...) {
 
-        char buff[kMaxBuffSize + 1] = {0, };
+        char buff[kMaxBuffSize + 1] = { 0, };
         uint32_t n = 0;
 
         va_list ap;
@@ -47,24 +47,23 @@ struct StrUtil {
 
         // trim left whitespace
         for (index = 0; index < str.size() && isspace(str[index]); ++index)
-            /* do nothing*/;
+        /* do nothing*/;
         str.erase(0, index);
 
         // trim right whitespace
         for (index = str.size(); index > 0 && isspace(str[index - 1]); --index)
-            /* do nothing*/;
+        /* do nothing*/;
         str.erase(index);
 
         return orig - str.size();
     }
 
 
-    template <typename T>
+    template<typename T>
     static std::string convert_to_string(const T& arg) {
         try {
             return boost::lexical_cast<std::string>(arg);
-        }
-        catch(boost::bad_lexical_cast& e) {
+        } catch (boost::bad_lexical_cast& e) {
             return "";
         }
     }
@@ -77,7 +76,7 @@ struct StrUtil {
 
 
 
-class UriRegex: public boost::regex {
+class UriRegex : public boost::regex {
 public:
     explicit UriRegex(const std::string& regexStr) :
         boost::regex(regexStr), str_(regexStr) {

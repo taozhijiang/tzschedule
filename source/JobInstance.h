@@ -20,13 +20,13 @@ namespace tzrpc {
 class SchTime {
 
 public:
-    SchTime():
+    SchTime() :
         sec_tp_(0), min_tp_(0), hour_tp_(0) {
     }
 
     // 根据指定的时间设置字符串，解析出下面的interval point成员
     bool parse(const std::string& sch_str);
-    
+
     // 根据给定的时间，计算出下一个触发的时间间隔
     int32_t next_interval();
     int32_t next_interval(time_t from);
@@ -40,9 +40,9 @@ private:
 
     // 用来解析 时、分、秒的
     template<std::size_t N>
-    bool parse_subtime(const std::string& sch_str, std::bitset<N> & store);
+    bool parse_subtime(const std::string& sch_str, std::bitset<N>& store);
 
-    
+
     // time_point
     std::bitset<60> sec_tp_;
     std::bitset<60> min_tp_;
@@ -53,19 +53,25 @@ private:
 class SoWrapperFunc;
 class TimerObject;
 
-enum ExecuteMethod {
-    kExecDefer  = 1,
-    kExecAsync  = 2,
+enum class ExecuteMethod : uint8_t {
+    kExecDefer = 1,
+    kExecAsync = 2,
     kExecBoundary,
 };
 
-class JobInstance: public std::enable_shared_from_this<JobInstance> {
+enum class ExecuteStatus : uint8_t {
+    kRunning = 1,
+    kTerminating = 2,
+    kDisabled = 3,
+};
+
+class JobInstance : public std::enable_shared_from_this<JobInstance> {
 
 public:
 
     JobInstance(const std::string& name, const std::string& desc,
                 const std::string& time_str, const std::string& so_path,
-                enum ExecuteMethod method = ExecuteMethod::kExecDefer ):
+                enum ExecuteMethod method = ExecuteMethod::kExecDefer) :
         name_(name),
         desc_(desc),
         time_str_(time_str),
@@ -82,17 +88,17 @@ public:
 
 
     bool init();
-    void operator()();
+    void operator ()();
     bool next_trigger();
 
     std::string str() {
         std::stringstream ss;
 
         ss << "JobInstance: " << name_ << std::endl
-           << "desc: " << desc_ << ", "
-           << "sch_time: " << time_str_ << ", "
-           << "exec_method: " << static_cast<int32_t>(exec_method_) << ", "
-           << "so_path: " << so_path_;
+            << "desc: " << desc_ << ", "
+            << "sch_time: " << time_str_ << ", "
+            << "exec_method: " << static_cast<int32_t>(exec_method_) << ", "
+            << "so_path: " << so_path_;
 
         return ss.str();
     }
@@ -107,7 +113,7 @@ private:
 
     SchTime sch_timer_;
     std::unique_ptr<SoWrapperFunc> so_handler_;
-    std::shared_ptr<TimerObject>   timer_;
+    std::shared_ptr<TimerObject> timer_;
 };
 
 } // end namespace tzrpc

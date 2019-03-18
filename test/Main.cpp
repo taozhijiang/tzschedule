@@ -26,12 +26,12 @@ int main(int argc, char** argv) {
     }
 
     std::string cfgFile = "tzschedule.conf";
-    if(!ConfHelper::instance().init(cfgFile)){
+    if (!ConfHelper::instance().init(cfgFile)) {
         return -1;
     }
 
     auto conf_ptr = ConfHelper::instance().get_conf();
-    if(!conf_ptr) {
+    if (!conf_ptr) {
         log_err("ConfHelper return null conf pointer, maybe your conf file ill!");
         return -1;
     }
@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 
 
 namespace boost {
-void assertion_failed(char const * expr, char const * function, char const * file, long line) {
+void assertion_failed(char const* expr, char const* function, char const* file, long line) {
     log_err("BAD!!! expr `%s` assert failed at %s(%ld): %s", expr, file, line, function);
 }
 } // end boost

@@ -31,14 +31,14 @@
 // man 3 syslog
 #include <syslog.h>
 
-typedef void(* CP_log_store_func_t)(int priority, const char *format, ...);
+typedef void (* CP_log_store_func_t)(int priority, const char* format, ...);
 
 namespace tzrpc {
 
 bool log_init(int log_level);
 void log_close();
-void log_api(int priority, const char *file, int line, const char *func, const char *msg, ...)
-    __attribute__((format(printf, 5, 6)));
+void log_api(int priority, const char* file, int line, const char* func, const char* msg, ...)
+__attribute__((format(printf, 5, 6)));
 
 #define log_emerg(...)   log_api( LOG_EMERG, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 #define log_alert(...)   log_api( LOG_ALERT, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)

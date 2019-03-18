@@ -44,7 +44,7 @@ bool SoWrapperFunc::init() {
 
 int SoWrapperFunc::operator()() {
 
-    if(!func_) {
+    if (!func_) {
         log_err("func not initialized.");
         return -1;
     }
@@ -52,7 +52,7 @@ int SoWrapperFunc::operator()() {
     int ret = 0;
 
     try {
-        ret = func_( NULL, NULL );
+        ret = func_(NULL, NULL);
     } catch (const std::exception& e) {
         log_err("post func call std::exception detect: %s.", e.what());
     } catch (...) {
@@ -65,7 +65,7 @@ int SoWrapperFunc::operator()() {
 
 int SoWrapperFunc::operator()(const std::string& req) {
 
-    if(!func_) {
+    if (!func_) {
         log_err("func not initialized.");
         return -1;
     }
@@ -76,7 +76,7 @@ int SoWrapperFunc::operator()(const std::string& req) {
     int ret = -1;
 
     try {
-        ret = func_(&msg_req, NULL );
+        ret = func_(&msg_req, NULL);
     } catch (const std::exception& e) {
         log_err("post func call std::exception detect: %s.", e.what());
     } catch (...) {
@@ -88,13 +88,13 @@ int SoWrapperFunc::operator()(const std::string& req) {
 
 int SoWrapperFunc::operator()(std::string& rsp) {
 
-    if(!func_) {
+    if (!func_) {
         log_err("func not initialized.");
         return -1;
     }
 
     int ret = -1;
-    msg_t msg_rsp {};
+    msg_t msg_rsp{};
 
     try {
         ret = func_(NULL, &msg_rsp);
@@ -111,7 +111,7 @@ int SoWrapperFunc::operator()(std::string& rsp) {
 
 int SoWrapperFunc::operator()(const std::string& req, std::string& rsp) {
 
-    if(!func_) {
+    if (!func_) {
         log_err("func not initialized.");
         return -1;
     }
@@ -120,7 +120,7 @@ int SoWrapperFunc::operator()(const std::string& req, std::string& rsp) {
     fill_msg(&msg_req, req.c_str(), req.size());
 
     int ret = -1;
-    msg_t msg_rsp {};
+    msg_t msg_rsp{};
 
     try {
         ret = func_(&msg_req, &msg_rsp);
