@@ -35,7 +35,7 @@ int Status::module_status(std::string& module, std::string& name, std::string& v
     name = "Status";
 
     std::stringstream ss;
-    ss << "registered status: " << std::endl;
+    ss << "registered module status: " << std::endl;
 
     int i = 1;
     for (auto it = calls_.begin(); it != calls_.end(); ++it) {

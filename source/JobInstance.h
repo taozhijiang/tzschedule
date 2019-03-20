@@ -91,6 +91,7 @@ public:
     bool init();
     void operator ()();
     bool next_trigger();
+    void terminate();
 
     std::string str() {
         std::stringstream ss;

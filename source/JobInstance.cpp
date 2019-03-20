@@ -326,6 +326,7 @@ void JobInstance::operator()() {
     // 如果用户对同一个so设置两个任务，可能会有问题，不要这么做
     //
     if (exec_status_ == ExecuteStatus::kTerminating) {
+        log_notice("marked job terminating, we will disabled it!");
         exec_status_ = ExecuteStatus::kDisabled;
         return;
     }
@@ -365,6 +366,17 @@ bool JobInstance::next_trigger() {
               name_.c_str(), next_interval);
     return true;
 }
+
+
+void JobInstance::terminate() {
+
+    exec_status_ = ExecuteStatus::kTerminating;
+    if (timer_) {
+        timer_->revoke_timer();
+        timer_.reset();
+    }
+}
+
 
 
 } // end namespace tzrpc

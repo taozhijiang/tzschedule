@@ -37,7 +37,8 @@ public:
 
         // RTLD_LAZY: Linux is not concerned about unresolved symbols until they are referenced.
         // RTLD_NOW: All unresolved symbols resolved when dlopen() is called.
-        dl_handle_ = dlopen(dl_path_.c_str(), RTLD_LAZY);
+        // dl_handle_ = dlopen(dl_path_.c_str(), RTLD_LAZY);
+        dl_handle_ = dlopen(dl_path_.c_str(), RTLD_NOW);
         if (!dl_handle_) {
             log_err("Load library %s failed: %s.", dl_path_.c_str(), dlerror());
             return false;

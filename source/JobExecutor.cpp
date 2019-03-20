@@ -75,8 +75,8 @@ bool JobExecutor::init(const libconfig::Config& conf) {
                    conf_.thread_number_hard_, conf_.thread_step_queue_size_);
 
         thread_adjust_timer_ = Timer::instance().add_better_timer(
-                                std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
-                                         1 * 1000, true);
+                               std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
+                               1 * 1000, true);
         if (!thread_adjust_timer_) {
             log_err("create thread adjust timer failed.");
             return false;
@@ -190,8 +190,6 @@ bool JobExecutor::parse_handle_conf(const libconfig::Setting& setting) {
 
 
 void JobExecutor::threads_adjust(const boost::system::error_code& ec) {
-
-    log_debug("threads_adjust running...");
 
     JobExecutorConf conf{};
 
@@ -329,7 +327,7 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
 
     // 首先是JobExecutor全局信息(比如线程池等)的动态更新
 
-    JobExecutorConf new_conf {};
+    JobExecutorConf new_conf{};
 
     conf.lookupValue("schedule.thread_pool_size", new_conf.thread_number_);
     conf.lookupValue("schedule.thread_pool_size_hard", new_conf.thread_number_hard_);
@@ -376,6 +374,9 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
         log_notice("update thread_pool_async_size from %d to %d",
                    conf_.thread_number_async_, new_conf.thread_number_async_);
         conf_.thread_number_async_ = new_conf.thread_number_async_;
+
+        // 更新异步线程池的最大线程数
+        async_task_->modify_spawn_size(conf_.thread_number_async_);
     }
 
     // 判定是否需要增加thread_adjust
@@ -383,12 +384,12 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
         conf_.thread_step_queue_size_ > 0) {
 
         log_notice("we will support thread adjust with param hard %d, queue_step %d",
-                  conf_.thread_number_hard_, conf_.thread_step_queue_size_);
+                   conf_.thread_number_hard_, conf_.thread_step_queue_size_);
 
         if (!thread_adjust_timer_) {
             thread_adjust_timer_ = Timer::instance().add_better_timer(
-                                    std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
-                                             1 * 1000, true);
+                                   std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
+                                   1 * 1000, true);
             if (!thread_adjust_timer_) {
                 log_err("create thread adjust timer failed.");
             }
@@ -404,24 +405,114 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
 
     }
 
-#if 0
-    int ret = service_impl_->module_runtime(conf);
-
-    // 如果返回0，表示配置文件已经正确解析了，同时ExecutorConf也重新初始化了
-    if (ret == 0) {
-        log_notice("update JobExecutor ...");
-        std::lock_guard<std::mutex> lock(conf_lock_);
-        conf_ = service_impl_->get_executor_conf();
-
-    }
-
-    return ret;
-#endif
-
 
     // 然后针对so-handlers进行配置
 
+    try {
+        const libconfig::Setting& handlers = conf.lookup("schedule.so_handlers");
+
+        for (int i = 0; i < handlers.getLength(); ++i) {
+            const libconfig::Setting& handler = handlers[i];
+            if (!parse_handle_runtime_conf(handler)) {
+                log_err("prase handle detail conf failed.");
+                return false;
+            }
+        }
+
+    } catch (const libconfig::SettingNotFoundException& nfex) {
+        log_err("schedule.so_handlers not found!");
+    } catch (std::exception& e) {
+        log_err("execptions catched for %s", e.what());
+    }
+
+
     return 0;
 }
+
+
+bool JobExecutor::remove_handle(const std::string& name) {
+
+    std::unique_lock<std::mutex> lock(lock_);
+
+    auto handle = tasks_.find(name);
+    if (handle == tasks_.end()) {
+        log_err("task %s not registered, fast return", name.c_str());
+        return true;
+    }
+
+    // tasks_ 持有一份，shared_from_this()持有一份
+    // terminate中会取消timer，释放掉shared_from_this()
+    handle->second->terminate();
+
+    while (!handle->second.unique()) {
+        log_notice("handle outside ref count: %d ...", static_cast<int>(handle->second.use_count() - 1));
+        boost::this_thread::sleep_for(milliseconds(100));
+    }
+
+    tasks_.erase(name);
+    handle = tasks_.end();
+
+    log_notice("handler %s successful removed.", name.c_str());
+    return true;
+}
+
+
+
+bool JobExecutor::parse_handle_runtime_conf(const libconfig::Setting& setting) {
+
+    std::string name;
+    std::string desc;
+    std::string sch_time;
+    std::string exec_method;
+    std::string so_path;
+    bool status = true;
+
+    setting.lookupValue("name", name);
+    setting.lookupValue("desc", desc);
+    setting.lookupValue("sch_time", sch_time);
+    setting.lookupValue("exec_method", exec_method);
+    setting.lookupValue("so_path", so_path);
+    setting.lookupValue("enable", status);
+
+    // 禁用的服务，一直阻塞，直到服务不再被占用，然后卸载
+    if (!status) {
+        log_err("Task %s marked disabled, we will try to unload it", name.c_str());
+
+        return remove_handle(name);
+    }
+
+    // 检查是否存在，如果存在则直接跳过
+    // 如果需要更新服务，需要先将其mark为delete的，然后再加载之
+
+    enum ExecuteMethod method = ExecuteMethod::kExecDefer;
+    if (!exec_method.empty()) {
+        if (exec_method == "defer") {
+            method = ExecuteMethod::kExecDefer;
+        } else if (exec_method == "async") {
+            method = ExecuteMethod::kExecAsync;
+        } else {
+            log_err("invalid exec_method: %s", exec_method.c_str());
+            return false;
+        }
+    }
+
+    std::unique_lock<std::mutex> lock(lock_);
+    if (tasks_.find(name) != tasks_.end()) {
+        log_err("task %s already registered, reject it (duplicate configure?)", name.c_str());
+        return false;
+    }
+
+    auto ins = std::make_shared<JobInstance>(name, desc, sch_time, so_path, method);
+    if (!ins || !ins->init()) {
+        log_err("init JobInstance failed, name: %s", name.c_str());
+        return false;
+    }
+
+    tasks_[name] = ins;
+    log_debug("register handler %s success.", name.c_str());
+    return true;
+}
+
+
 
 } // end namespace tzrpc

@@ -58,6 +58,22 @@ public:
         return max_spawn_task_ - thread_mng_.current_size();
     }
 
+    void modify_spawn_size(uint32_t nsize) {
+        if (nsize == 0) {
+            log_err("invalid new max_spawn_task size: %u", nsize);
+            return;
+        }
+
+        if (nsize != max_spawn_task_) {
+            log_notice("update ThreadMng task size from %u to %u",
+                       max_spawn_task_, nsize);
+            max_spawn_task_ = nsize;
+
+            thread_mng_.modify_spawn_size(nsize);
+        }
+    }
+
+
 private:
     void run() {
 
@@ -83,7 +99,7 @@ private:
 
 private:
 
-    const uint32_t max_spawn_task_;
+    uint32_t max_spawn_task_;
     std::shared_ptr<boost::thread> thread_run_;
 
     // 封装线程管理细节

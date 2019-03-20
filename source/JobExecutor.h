@@ -66,6 +66,10 @@ private:
     std::map<std::string, std::shared_ptr<JobInstance>> tasks_;
 
     bool parse_handle_conf(const libconfig::Setting& setting);
+    bool parse_handle_runtime_conf(const libconfig::Setting& setting);
+
+    // 无限阻塞，直到引用计数合法后，卸载对应so
+    bool remove_handle(const std::string& name);
 
     // 在线程池中依序列执行
     EQueue<std::weak_ptr<JobInstance>> defer_queue_;
