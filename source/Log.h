@@ -49,6 +49,11 @@ __attribute__((format(printf, 5, 6)));
 #define log_info(...)    log_api( LOG_INFO, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 #define log_debug(...)   log_api( LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 
+// 推荐使用方式：
+// log_debug  普通调试类日志，可以安全删除的日志
+// log_info   记录类日志，比如订单处理状态等，需要归档
+// log_notice 重要提示类信息，比如配置动态更新等
+// log_err    错误类日志
 
 // Log Store
 

@@ -77,6 +77,7 @@ public:
         time_str_(time_str),
         exec_method_(method),
         so_path_(so_path),
+        exec_status_(ExecuteStatus::kRunning),
         sch_timer_() {
     }
 
@@ -110,6 +111,8 @@ private:
     const std::string time_str_;
     enum ExecuteMethod exec_method_;
     const std::string so_path_;
+
+    enum ExecuteStatus exec_status_;
 
     SchTime sch_timer_;
     std::unique_ptr<SoWrapperFunc> so_handler_;

@@ -82,6 +82,7 @@ bool Captain::init(const std::string& cfgFile) {
 
 
 bool Captain::service_graceful() {
+
     JobExecutor::instance().threads_join();
     Timer::instance().threads_join();
     return true;
@@ -95,8 +96,8 @@ void Captain::service_terminate() {
 
 bool Captain::service_joinall() {
 
-    Timer::instance().threads_join();
     JobExecutor::instance().threads_join();
+    Timer::instance().threads_join();
     return true;
 }
 

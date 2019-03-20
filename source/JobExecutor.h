@@ -113,6 +113,7 @@ private:
     JobExecutor& operator=(const JobExecutor&) = delete;
 
     // 根据rpc_queue_自动伸缩线程负载
+    std::shared_ptr<TimerObject> thread_adjust_timer_;
     void threads_adjust(const boost::system::error_code& ec);
 };
 

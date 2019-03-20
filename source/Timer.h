@@ -38,6 +38,7 @@ public:
     }
 
     ~TimerObject() {
+        revoke_timer();
         log_debug("Good, Timer released...");
     }
 
@@ -48,9 +49,20 @@ public:
 
 
     bool init();
-    bool cancel() {
 
-        return false;
+    void cancel_timer() {
+
+        if (steady_timer_) {
+            boost::system::error_code ec;
+            steady_timer_->cancel(ec);
+
+            steady_timer_.reset();
+        }
+    }
+
+    void revoke_timer() {
+        forever_ = false;
+        cancel_timer();
     }
 
 private:
@@ -67,7 +79,7 @@ private:
 
 
 // 注意，这里的Timer不持有任何TimerObject对象的智能指针，
-//      TimerObject完全是依靠shared_from_this()自持有的
+//       TimerObject完全是依靠shared_from_this()自持有的
 class Timer {
 
 public:

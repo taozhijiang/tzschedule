@@ -320,8 +320,17 @@ void JobInstance::operator()() {
 
     (*so_handler_)();
 
-    next_trigger();
+    // 如果设置了Terminate标识，则设置退出标志
+    // 因为我们是so_handler执行完之后才会设置下一个schedule，所以不应当会有并发问题
+    //
+    // 如果用户对同一个so设置两个任务，可能会有问题，不要这么做
+    //
+    if (exec_status_ == ExecuteStatus::kTerminating) {
+        exec_status_ = ExecuteStatus::kDisabled;
+        return;
+    }
 
+    next_trigger();
 }
 
 
@@ -329,6 +338,11 @@ void JE_add_task_defer(std::shared_ptr<JobInstance>& ins);
 void JE_add_task_async(std::shared_ptr<JobInstance>& ins);
 
 bool JobInstance::next_trigger() {
+
+    if (exec_status_ != ExecuteStatus::kRunning) {
+        log_notice("current exec_status is %d, not next...", static_cast<uint8_t>(exec_status_));
+        return false;
+    }
 
     int next_interval = sch_timer_.next_interval();
     if (next_interval <= 0) {

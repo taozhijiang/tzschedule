@@ -10,6 +10,7 @@
 
 #include "Timer.h"
 #include "Status.h"
+#include "ConfHelper.h"
 
 #include "JobInstance.h"
 #include "JobExecutor.h"
@@ -36,12 +37,12 @@ JobExecutor& JobExecutor::instance() {
 
 bool JobExecutor::init(const libconfig::Config& conf) {
 
-
     // common params
-    conf.lookupValue("thread_pool_size", conf_.thread_number_);
-    conf.lookupValue("thread_pool_size_hard", conf_.thread_number_hard_);
-    conf.lookupValue("thread_pool_step_queue_size", conf_.thread_step_queue_size_);
-    conf.lookupValue("thread_pool_async_size", conf_.thread_number_async_);
+    conf.lookupValue("schedule.thread_pool_size", conf_.thread_number_);
+    conf.lookupValue("schedule.thread_pool_size_hard", conf_.thread_number_hard_);
+    conf.lookupValue("schedule.thread_pool_step_queue_size", conf_.thread_step_queue_size_);
+
+    conf.lookupValue("schedule.thread_pool_async_size", conf_.thread_number_async_);
 
     if (conf_.thread_number_hard_ < conf_.thread_number_) {
         conf_.thread_number_hard_ = conf_.thread_number_;
@@ -50,13 +51,13 @@ bool JobExecutor::init(const libconfig::Config& conf) {
     if (conf_.thread_number_ <= 0 || conf_.thread_number_ > 100 ||
         conf_.thread_number_hard_ > 100 ||
         conf_.thread_number_hard_ < conf_.thread_number_) {
-        log_err("invalid thread_pool_size setting: %d, %d",
+        log_err("invalid thread_pool_size and hard setting: %d, %d",
                 conf_.thread_number_, conf_.thread_number_hard_);
         return false;
     }
 
     if (conf_.thread_step_queue_size_ < 0) {
-        log_err("invalid thread_step_queue_size setting: %d",
+        log_err("invalid thread_pool_step_queue_size setting: %d",
                 conf_.thread_step_queue_size_);
         return false;
     }
@@ -67,19 +68,24 @@ bool JobExecutor::init(const libconfig::Config& conf) {
         return false;
     }
 
+    // 检查是否需要创建thread_adjust定时任务，进行线程池的动态伸缩
     if (conf_.thread_number_hard_ > conf_.thread_number_ &&
         conf_.thread_step_queue_size_ > 0) {
-        log_debug("we will support thread adjust with param hard %d, queue_step %d",
-                  conf_.thread_number_hard_, conf_.thread_step_queue_size_);
+        log_notice("we will support thread adjust with param hard %d, queue_step %d",
+                   conf_.thread_number_hard_, conf_.thread_step_queue_size_);
 
-        if (!Timer::instance().add_timer(std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
-                                         1 * 1000, true)) {
+        thread_adjust_timer_ = Timer::instance().add_better_timer(
+                                std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
+                                         1 * 1000, true);
+        if (!thread_adjust_timer_) {
             log_err("create thread adjust timer failed.");
             return false;
         }
     }
 
-    // handlers
+    // so_handlers
+    // 进行动态任务的加载和初始化
+
     try {
         const libconfig::Setting& handlers = conf.lookup("schedule.so_handlers");
 
@@ -118,6 +124,10 @@ bool JobExecutor::init(const libconfig::Config& conf) {
         std::bind(&JobExecutor::module_status, this,
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
+    ConfHelper::instance().register_runtime_callback(
+        "JobExecutor",
+        std::bind(&JobExecutor::module_runtime, this,
+                  std::placeholders::_1));
 
     return true;
 }
@@ -132,12 +142,20 @@ bool JobExecutor::parse_handle_conf(const libconfig::Setting& setting) {
     std::string sch_time;
     std::string exec_method;
     std::string so_path;
+    bool status = true;
 
     setting.lookupValue("name", name);
     setting.lookupValue("desc", desc);
     setting.lookupValue("sch_time", sch_time);
     setting.lookupValue("exec_method", exec_method);
     setting.lookupValue("so_path", so_path);
+    setting.lookupValue("enable", status);
+
+    // 禁用的服务，初始化的时候不予加载
+    if (!status) {
+        log_err("Task %s marked disabled, skip it at init stage.", name.c_str());
+        return true;
+    }
 
     enum ExecuteMethod method = ExecuteMethod::kExecDefer;
     if (!exec_method.empty()) {
@@ -153,7 +171,7 @@ bool JobExecutor::parse_handle_conf(const libconfig::Setting& setting) {
 
     std::unique_lock<std::mutex> lock(lock_);
     if (tasks_.find(name) != tasks_.end()) {
-        log_err("Task %s already registered, reject it", name.c_str());
+        log_err("task %s already registered, reject it (duplicate configure?)", name.c_str());
         return false;
     }
 
@@ -172,6 +190,8 @@ bool JobExecutor::parse_handle_conf(const libconfig::Setting& setting) {
 
 
 void JobExecutor::threads_adjust(const boost::system::error_code& ec) {
+
+    log_debug("threads_adjust running...");
 
     JobExecutorConf conf{};
 
@@ -291,10 +311,15 @@ int JobExecutor::module_status(std::string& module, std::string& name, std::stri
 
     std::stringstream ss;
 
+    {
+        std::unique_lock<std::mutex> lock(lock_);
+        for (auto iter = tasks_.begin(); iter != tasks_.end(); ++iter) {
+            ss << "E:" << iter->first.c_str() << std::endl;
+            ss << "\t" << iter->second->str().c_str() << std::endl;
+        }
+    }
 
-
-    // collect
-    val = "NULL";
+    val = ss.str();
 
     return 0;
 }
@@ -303,6 +328,82 @@ int JobExecutor::module_status(std::string& module, std::string& name, std::stri
 int JobExecutor::module_runtime(const libconfig::Config& conf) {
 
     // 首先是JobExecutor全局信息(比如线程池等)的动态更新
+
+    JobExecutorConf new_conf {};
+
+    conf.lookupValue("schedule.thread_pool_size", new_conf.thread_number_);
+    conf.lookupValue("schedule.thread_pool_size_hard", new_conf.thread_number_hard_);
+    conf.lookupValue("schedule.thread_pool_step_queue_size", new_conf.thread_step_queue_size_);
+    conf.lookupValue("schedule.thread_pool_async_size", new_conf.thread_number_async_);
+
+    if (new_conf.thread_number_hard_ < new_conf.thread_number_) {
+        new_conf.thread_number_hard_ = new_conf.thread_number_;
+    }
+
+    if (new_conf.thread_number_ <= 0 || new_conf.thread_number_ > 100 ||
+        new_conf.thread_number_hard_ > 100 ||
+        new_conf.thread_number_hard_ < new_conf.thread_number_) {
+        log_err("invalid thread_pool_size and thread_pool_size_hard setting: %d, %d",
+                new_conf.thread_number_, new_conf.thread_number_hard_);
+    } else {
+        if (new_conf.thread_number_ != conf_.thread_number_) {
+            log_notice("update thread_pool_size from %d to %d",
+                       conf_.thread_number_, new_conf.thread_number_);
+            conf_.thread_number_ = new_conf.thread_number_;
+        }
+
+        if (new_conf.thread_number_hard_ != conf_.thread_number_hard_) {
+            log_notice("update thread_pool_size_hard from %d to %d",
+                       conf_.thread_number_hard_, new_conf.thread_number_hard_);
+            conf_.thread_number_hard_ = new_conf.thread_number_hard_;
+        }
+    }
+
+    if (conf_.thread_step_queue_size_ < 0) {
+        log_err("invalid thread_pool_step_queue_size setting: %d",
+                new_conf.thread_step_queue_size_);
+    } else if (new_conf.thread_step_queue_size_ != conf_.thread_step_queue_size_) {
+        log_notice("update thread_pool_step_queue_size from %d to %d",
+                   conf_.thread_step_queue_size_, new_conf.thread_step_queue_size_);
+        conf_.thread_step_queue_size_ = new_conf.thread_step_queue_size_;
+    }
+
+
+    if (new_conf.thread_number_async_ <= 0) {
+        log_err("invalid thread_pool_async_size setting: %d",
+                new_conf.thread_number_async_);
+    } else if (new_conf.thread_number_async_ != conf_.thread_number_async_) {
+        log_notice("update thread_pool_async_size from %d to %d",
+                   conf_.thread_number_async_, new_conf.thread_number_async_);
+        conf_.thread_number_async_ = new_conf.thread_number_async_;
+    }
+
+    // 判定是否需要增加thread_adjust
+    if (conf_.thread_number_hard_ > conf_.thread_number_ &&
+        conf_.thread_step_queue_size_ > 0) {
+
+        log_notice("we will support thread adjust with param hard %d, queue_step %d",
+                  conf_.thread_number_hard_, conf_.thread_step_queue_size_);
+
+        if (!thread_adjust_timer_) {
+            thread_adjust_timer_ = Timer::instance().add_better_timer(
+                                    std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
+                                             1 * 1000, true);
+            if (!thread_adjust_timer_) {
+                log_err("create thread adjust timer failed.");
+            }
+        }
+    } else {
+
+        // 需要取消该线程的执行（洁癖）
+        if (thread_adjust_timer_) {
+            log_notice("we will close thread_adjust_timer_");
+            thread_adjust_timer_->revoke_timer();
+            thread_adjust_timer_.reset();
+        }
+
+    }
+
 #if 0
     int ret = service_impl_->module_runtime(conf);
 
