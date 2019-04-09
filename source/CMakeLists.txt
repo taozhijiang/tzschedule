@@ -20,4 +20,4 @@ include_directories( ../xtra_rhelz.x/include )
 # add_subdirectory( so-handler/postdemo )
 
 aux_source_directory(. DIR_LIB_SRCS)
-add_library (Schedule STATIC ${DIR_LIB_SRCS})
+add_library (Argus STATIC ${DIR_LIB_SRCS})

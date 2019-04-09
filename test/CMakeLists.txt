@@ -21,7 +21,7 @@ link_directories( /usr/lib64/mysql/
 aux_source_directory( ./ UNIT_TEST_SRCS )
 add_executable( test ${UNIT_TEST_SRCS} )
 
-set (EXTRA_LIBS Schedule)
+set (EXTRA_LIBS Argus)
 
 set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)

@@ -56,11 +56,11 @@ exec_program( "export BUILD_VAR=`git log -1 --pretty=%cd` && echo 'const char *b
 exec_program( "export BUILD_VAR=`git log -1 --pretty=\"%an %ae\"` && echo 'const char *build_commit_author = \"VCS: Author:' $BUILD_VAR '\";' >> build_version.cpp ")
 exec_program( "export BUILD_VAR=`date +%F` && echo 'const char *build_time = \"Build At:' $BUILD_VAR '\";' >> build_version.cpp ")
 
-add_executable( tzschedule main.cpp setup.cpp build_version.cpp )
+add_executable( argus_service main.cpp setup.cpp build_version.cpp )
 
 # ld iconv ?
 
-set (WHOLE_LIBS Schedule )
+set (WHOLE_LIBS Argus )
 
 set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
@@ -69,7 +69,7 @@ set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex
 
 
 # 某些库需要静态全连接，否则主服务没使用但是so使用，会报符号没有找到
-target_link_libraries( tzschedule -lrt -rdynamic -ldl
+target_link_libraries( argus_service -lrt -rdynamic -ldl
     -Wl,--whole-archive ${WHOLE_LIBS} -Wl,--no-whole-archive
     ${EXTRA_LIBS}
 )
