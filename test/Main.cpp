@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
         ::exit(1);
     }
 
-    std::string cfgFile = "tzschedule.conf";
+    std::string cfgFile = "../argus_example.conf";
     if (!ConfHelper::instance().init(cfgFile)) {
         return -1;
     }
