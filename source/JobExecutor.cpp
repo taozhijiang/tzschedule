@@ -431,7 +431,7 @@ bool JobExecutor::add_builtin_task(const std::string& name, const std::string& d
                                    const std::string& time_str, const std::function<int()>& func,
                                    bool async) {
 
-    if (name.empty() || time_str.empty() || func ) {
+    if (name.empty() || time_str.empty() || !func ) {
         log_err("param fast check failed.");
         return false;
     }
@@ -456,6 +456,18 @@ bool JobExecutor::add_builtin_task(const std::string& name, const std::string& d
     log_debug("register handler %s success.", name.c_str());
     return true;
 }
+
+
+bool JobExecutor::task_exists(const std::string& name) {
+
+    std::unique_lock<std::mutex> lock(lock_);
+
+    if (tasks_.find(name) != tasks_.end()) {
+        return true;
+    }
+    return false;
+}
+
 
 bool JobExecutor::remove_so_task(const std::string& name) {
 

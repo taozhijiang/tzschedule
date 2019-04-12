@@ -44,6 +44,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/include/
     ${PROJECT_SOURCE_DIR}/source/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/google/ 
 )
 
 add_subdirectory( source/ )

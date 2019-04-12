@@ -119,7 +119,7 @@ public:
             << "desc: " << desc_ << ", "
             << "sch_time: " << time_str_ << ", "
             << "exec_method: " << static_cast<int32_t>(exec_method_) << ", "
-            << "builtin: " << ( is_builtin()? "true" : "false" )
+            << "builtin: " << ( is_builtin()? "true" : "false" ) << ", "
             << "so_path: " << so_path_;
 
         return ss.str();

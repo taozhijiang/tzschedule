@@ -19,6 +19,8 @@
 
 #include "JobInstance.h"
 
+#include <gtest/gtest_prod.h>
+
 namespace tzrpc {
 
 
@@ -49,6 +51,8 @@ void JE_add_task_async(std::shared_ptr<JobInstance>& ins);
 
 class JobExecutor {
 
+    FRIEND_TEST(ExecutorFriendTest, SoHandleTest);
+
     friend void JE_add_task_defer(std::shared_ptr<JobInstance>& ins);
     friend void JE_add_task_async(std::shared_ptr<JobInstance>& ins);
 
@@ -60,6 +64,7 @@ public:
     bool add_builtin_task(const std::string& name, const std::string& desc,
                           const std::string& time_str, const std::function<int()>& func,
                           bool async = false);
+    bool task_exists(const std::string& name);
 
     bool init(const libconfig::Config& conf);
     int module_runtime(const libconfig::Config& conf);

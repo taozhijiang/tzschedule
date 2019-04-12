@@ -29,5 +29,6 @@ set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex
 set (EXTRA_LIBS ${EXTRA_LIBS} gtest gmock gtest_main)
 
 add_individual_test(SchTime)
+add_individual_test(JobMng)
 
 
