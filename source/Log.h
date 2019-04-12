@@ -32,8 +32,9 @@
 #include <syslog.h>
 
 typedef void (* CP_log_store_func_t)(int priority, const char* format, ...);
-
 namespace tzrpc {
+
+void set_checkpoint_log_store_func(CP_log_store_func_t func);
 
 bool log_init(int log_level);
 void log_close();

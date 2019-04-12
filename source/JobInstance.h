@@ -69,9 +69,24 @@ class JobInstance : public std::enable_shared_from_this<JobInstance> {
 
 public:
 
+    // 内置类型
+    JobInstance(const std::string& name, const std::string& desc,
+                const std::string& time_str, const std::function<int()>& func,
+                enum ExecuteMethod method = ExecuteMethod::kExecDefer ):
+        name_(name),
+        desc_(desc),
+        time_str_(time_str),
+        exec_method_(method),
+        so_path_(),
+        builtin_func_(func),
+        exec_status_(ExecuteStatus::kRunning),
+        sch_timer_() {
+    }
+
+    // so动态类型
     JobInstance(const std::string& name, const std::string& desc,
                 const std::string& time_str, const std::string& so_path,
-                enum ExecuteMethod method = ExecuteMethod::kExecDefer) :
+                enum ExecuteMethod method = ExecuteMethod::kExecDefer ):
         name_(name),
         desc_(desc),
         time_str_(time_str),
@@ -93,6 +108,10 @@ public:
     bool next_trigger();
     void terminate();
 
+    bool is_builtin() {
+        return !!builtin_func_;
+    }
+
     std::string str() {
         std::stringstream ss;
 
@@ -100,6 +119,7 @@ public:
             << "desc: " << desc_ << ", "
             << "sch_time: " << time_str_ << ", "
             << "exec_method: " << static_cast<int32_t>(exec_method_) << ", "
+            << "builtin: " << ( is_builtin()? "true" : "false" )
             << "so_path: " << so_path_;
 
         return ss.str();
@@ -110,13 +130,15 @@ private:
     const std::string name_;
     const std::string desc_;
     const std::string time_str_;
-    enum ExecuteMethod exec_method_;
+
+    enum  ExecuteMethod exec_method_; // defer async
     const std::string so_path_;
+    std::unique_ptr<SoWrapperFunc> so_handler_;
+    std::function<int()> builtin_func_;
 
     enum ExecuteStatus exec_status_;
 
-    SchTime sch_timer_;
-    std::unique_ptr<SoWrapperFunc> so_handler_;
+    SchTime sch_timer_;              // 时间调度信息，解析后的结果
     std::shared_ptr<TimerObject> timer_;
 };
 

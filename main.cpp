@@ -8,7 +8,6 @@
 #include "Log.h"
 #include "SslSetup.h"
 
-#include "CheckPoint.h"
 #include "Captain.h"
 
 #include <xtra_rhel.h>

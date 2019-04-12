@@ -10,10 +10,16 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "CheckPoint.h"
 #include "Log.h"
 
 namespace tzrpc {
+
+// Log Store
+CP_log_store_func_t checkpoint_log_store_func_impl_ = NULL;
+void set_checkpoint_log_store_func(CP_log_store_func_t func) {
+    checkpoint_log_store_func_impl_ = func;
+}
+
 
 // The use of openlog() is optional; it will automatically be called by syslog() if necessary.
 bool log_init(int log_level) {

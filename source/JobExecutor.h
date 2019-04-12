@@ -17,6 +17,8 @@
 #include "ThreadPool.h"
 #include "ConfHelper.h"
 
+#include "JobInstance.h"
+
 namespace tzrpc {
 
 
@@ -54,6 +56,11 @@ public:
 
     static JobExecutor& instance();
 
+    // 可以用来创建内置的定时任务，不支持删除、更新等操作
+    bool add_builtin_task(const std::string& name, const std::string& desc,
+                          const std::string& time_str, const std::function<int()>& func,
+                          bool async = false);
+
     bool init(const libconfig::Config& conf);
     int module_runtime(const libconfig::Config& conf);
     int module_status(std::string& module, std::string& name, std::string& val);
@@ -65,11 +72,12 @@ private:
     std::mutex lock_;
     std::map<std::string, std::shared_ptr<JobInstance>> tasks_;
 
-    bool parse_handle_conf(const libconfig::Setting& setting);
-    bool parse_handle_runtime_conf(const libconfig::Setting& setting);
+    // so task都是通过配置文件动态处理的，所以全部都是private
+    bool handle_so_task_conf(const libconfig::Setting& setting);
+    bool handle_so_task_runtime_conf(const libconfig::Setting& setting);
 
     // 无限阻塞，直到引用计数合法后，卸载对应so
-    bool remove_handle(const std::string& name);
+    bool remove_so_task(const std::string& name);
 
     // 在线程池中依序列执行
     EQueue<std::weak_ptr<JobInstance>> defer_queue_;

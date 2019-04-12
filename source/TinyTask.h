@@ -28,12 +28,20 @@ class TinyTask : public std::enable_shared_from_this<TinyTask> {
 
 public:
 
-    explicit TinyTask(uint8_t max_spawn_task) :
+    explicit TinyTask(uint8_t max_spawn_task):
         max_spawn_task_(max_spawn_task),
-        thread_mng_(max_spawn_task) {
+        thread_run_(),
+        thread_terminate_(false),
+        thread_mng_(max_spawn_task),
+        tasks_() {
     }
 
-    ~TinyTask() { }
+    ~TinyTask() {
+        thread_terminate_ = true;
+        if(thread_run_ && thread_run_->joinable()) {
+            thread_run_->join();
+        }
+    }
 
     // 禁止拷贝
     TinyTask(const TinyTask&) = delete;
@@ -42,7 +50,7 @@ public:
     bool init() {
         thread_run_.reset(new boost::thread(std::bind(&TinyTask::run, shared_from_this())));
         if (!thread_run_) {
-            printf("create run work thread failed! ");
+            log_err("create run work thread failed!");
             return false;
         }
 
@@ -77,23 +85,28 @@ public:
 private:
     void run() {
 
-        printf("TinyTask thread %#lx begin to run ...", (long)pthread_self());
+        log_info("TinyTask thread %#lx begin to run ...", (long)pthread_self());
 
         while (true) {
 
-            std::vector<TaskRunnable> tasks{};
+            if( thread_terminate_ ) {
+                log_debug("TinyTask thread %#lx about to terminate ...", (long)pthread_self());
+                break;
+            }
+
+            std::vector<TaskRunnable> tasks {};
             size_t count = tasks_.POP(tasks, max_spawn_task_, 1000);
-            if (!count) {  // 空闲
+            if( !count ){  // 空闲
                 continue;
             }
 
-            for (size_t i = 0; i < tasks.size(); ++i) {
+            for(size_t i=0; i<tasks.size(); ++i) {
                 thread_mng_.add_task(tasks[i]);
             }
 
             thread_mng_.join_all();
 
-            printf("count %d task process done!", static_cast<int>(tasks.size()));
+            log_debug("count %d task process done!", static_cast<int>(tasks.size()));
         }
     }
 
@@ -101,6 +114,7 @@ private:
 
     uint32_t max_spawn_task_;
     std::shared_ptr<boost::thread> thread_run_;
+    bool thread_terminate_;
 
     // 封装线程管理细节
     ThreadMng thread_mng_;

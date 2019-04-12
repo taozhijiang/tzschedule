@@ -276,25 +276,30 @@ int32_t SchTime::next_interval(time_t from) {
 
 
 JobInstance::~JobInstance() {
-    log_debug("Job Destructed:\n%s", this->str().c_str());
+    log_debug("Job destructed forever:\n%s", this->str().c_str());
 }
 
 
+// 对于内置类型，只需要进行next_trigger计算下一次执行时间
+// 就可以了，对于so类型，则进行实际的so加载和初始化
 bool JobInstance::init() {
 
-    if (name_.empty() || time_str_.empty() || so_path_.empty()) {
+    if (name_.empty() || time_str_.empty() || (!builtin_func_ && so_path_.empty()) ) {
+        log_err("param fast check failed.");
         return false;
     }
 
     if (!sch_timer_.parse(time_str_)) {
-        log_err("parse time setting failed.");
+        log_err("parse time setting failed %s.", time_str_.c_str());
         return false;
     }
 
-    so_handler_.reset(new SoWrapperFunc(so_path_));
-    if (!so_handler_ || !so_handler_->init()) {
-        log_err("create and init so_handler failed.");
-        return false;
+    if (!builtin_func_) {
+        so_handler_.reset(new SoWrapperFunc(so_path_));
+        if (!so_handler_ || !so_handler_->init()) {
+            log_err("create and init so_handler failed.");
+            return false;
+        }
     }
 
     if (!next_trigger()) {
@@ -303,7 +308,6 @@ bool JobInstance::init() {
     }
 
     log_debug("JobInstance initialized finished:\n%s", this->str().c_str());
-
     return true;
 }
 
@@ -311,14 +315,21 @@ bool JobInstance::init() {
 
 void JobInstance::operator()() {
 
-    SAFE_ASSERT(so_handler_);
+    SAFE_ASSERT(builtin_func_ || so_handler_);
 
-    if (!so_handler_) {
-        log_err("Instance with empty so_handler!");
+    int code = 0;
+    if (builtin_func_) {
+        code = builtin_func_();
+    } else if (so_handler_) {
+        code = (*so_handler_)();
+    } else {
+        log_err("job with empty func!");
         return;
     }
 
-    (*so_handler_)();
+    if (code != 0) {
+        log_err("job func return %d, job desc: %s", code, this->str().c_str());
+    }
 
     // 如果设置了Terminate标识，则设置退出标志
     // 因为我们是so_handler执行完之后才会设置下一个schedule，所以不应当会有并发问题
@@ -353,10 +364,10 @@ bool JobInstance::next_trigger() {
 
     if (exec_method_ == ExecuteMethod::kExecDefer) {
         timer_ = Timer::instance().add_better_timer(
-                 std::bind(JE_add_task_defer, shared_from_this()), next_interval * 1000, false);
+            std::bind(JE_add_task_defer, shared_from_this()), next_interval * 1000, false);
     } else if (exec_method_ == ExecuteMethod::kExecAsync) {
         timer_ = Timer::instance().add_better_timer(
-                 std::bind(JE_add_task_async, shared_from_this()), next_interval * 1000, false);
+            std::bind(JE_add_task_async, shared_from_this()), next_interval * 1000, false);
     } else {
         log_err("unknown exec_method: %d", static_cast<int32_t>(exec_method_));
         return false;

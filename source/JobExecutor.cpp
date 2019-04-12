@@ -91,7 +91,7 @@ bool JobExecutor::init(const libconfig::Config& conf) {
 
         for (int i = 0; i < handlers.getLength(); ++i) {
             const libconfig::Setting& handler = handlers[i];
-            if (!parse_handle_conf(handler)) {
+            if (!handle_so_task_conf(handler)) {
                 log_err("prase handle detail conf failed.");
                 return false;
             }
@@ -133,9 +133,7 @@ bool JobExecutor::init(const libconfig::Config& conf) {
 }
 
 
-
-
-bool JobExecutor::parse_handle_conf(const libconfig::Setting& setting) {
+bool JobExecutor::handle_so_task_conf(const libconfig::Setting& setting) {
 
     std::string name;
     std::string desc;
@@ -413,7 +411,7 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
 
         for (int i = 0; i < handlers.getLength(); ++i) {
             const libconfig::Setting& handler = handlers[i];
-            if (!parse_handle_runtime_conf(handler)) {
+            if (!handle_so_task_runtime_conf(handler)) {
                 log_err("prase handle detail conf failed.");
                 return false;
             }
@@ -429,8 +427,37 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
     return 0;
 }
 
+bool JobExecutor::add_builtin_task(const std::string& name, const std::string& desc,
+                                   const std::string& time_str, const std::function<int()>& func,
+                                   bool async) {
 
-bool JobExecutor::remove_handle(const std::string& name) {
+    if (name.empty() || time_str.empty() || func ) {
+        log_err("param fast check failed.");
+        return false;
+    }
+
+    enum ExecuteMethod method = ExecuteMethod::kExecDefer;
+    if (async)
+        method = ExecuteMethod::kExecAsync;
+
+    std::unique_lock<std::mutex> lock(lock_);
+    if (tasks_.find(name) != tasks_.end()) {
+        log_err("task %s already registered, reject it (duplicate configure?)", name.c_str());
+        return false;
+    }
+
+    auto ins = std::make_shared<JobInstance>(name, desc, time_str, func, method);
+    if (!ins || !ins->init()) {
+        log_err("init builtin JobInstance failed, name: %s", name.c_str());
+        return false;
+    }
+
+    tasks_[name] = ins;
+    log_debug("register handler %s success.", name.c_str());
+    return true;
+}
+
+bool JobExecutor::remove_so_task(const std::string& name) {
 
     std::unique_lock<std::mutex> lock(lock_);
 
@@ -438,6 +465,11 @@ bool JobExecutor::remove_handle(const std::string& name) {
     if (handle == tasks_.end()) {
         log_err("task %s not registered, fast return", name.c_str());
         return true;
+    }
+
+    if (handle->second->is_builtin()) {
+        log_err("remove builtin task, weird... hh");
+        return false;
     }
 
     // tasks_ 持有一份，shared_from_this()持有一份
@@ -458,7 +490,7 @@ bool JobExecutor::remove_handle(const std::string& name) {
 
 
 
-bool JobExecutor::parse_handle_runtime_conf(const libconfig::Setting& setting) {
+bool JobExecutor::handle_so_task_runtime_conf(const libconfig::Setting& setting) {
 
     std::string name;
     std::string desc;
@@ -476,9 +508,8 @@ bool JobExecutor::parse_handle_runtime_conf(const libconfig::Setting& setting) {
 
     // 禁用的服务，一直阻塞，直到服务不再被占用，然后卸载
     if (!status) {
-        log_err("Task %s marked disabled, we will try to unload it", name.c_str());
-
-        return remove_handle(name);
+        log_err("task %s marked disabled, we will try to unload it", name.c_str());
+        return remove_so_task(name);
     }
 
     // 检查是否存在，如果存在则直接跳过
