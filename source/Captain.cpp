@@ -72,6 +72,8 @@ bool Captain::init(const std::string& cfgFile) {
         return false;
     }
 
+    // add specified builtin task here
+
     JobExecutor::instance().threads_start();
 
     log_info("Captain makes all initialized...");

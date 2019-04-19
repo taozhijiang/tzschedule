@@ -10,7 +10,7 @@ using namespace ::testing;
 
 using namespace tzrpc;
 
-int test_func() {
+int test_func(JobInstance* inst) {
     return 0;
 }
 

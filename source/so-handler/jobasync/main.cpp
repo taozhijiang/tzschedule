@@ -2,6 +2,9 @@
 
 #include "../../SoBridge.h"
 #include "../../Log.h"
+#include "../../JobInstance.h"
+
+using namespace tzrpc;
 
 #ifdef __cplusplus
 extern "C"
@@ -19,7 +22,10 @@ int module_exit() {
 
 int so_handler(const msg_t* req, msg_t* rsp) {
 
-    tzrpc::log_info("async job running log, thread %lx ...", (long)pthread_self());
+    const JobInstance* ptr = reinterpret_cast<const JobInstance *>(req);
+    log_info("async job running log, job desc: %s, thread %lx ...",
+             ptr->str().c_str(), (long)pthread_self());
+
     return 0;
 }
 

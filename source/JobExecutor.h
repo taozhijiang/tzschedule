@@ -62,7 +62,7 @@ public:
 
     // 可以用来创建内置的定时任务，不支持删除、更新等操作
     bool add_builtin_task(const std::string& name, const std::string& desc,
-                          const std::string& time_str, const std::function<int()>& func,
+                          const std::string& time_str, const std::function<int(JobInstance *)>& func,
                           bool async = false);
     bool task_exists(const std::string& name);
 

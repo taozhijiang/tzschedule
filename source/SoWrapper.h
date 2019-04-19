@@ -24,6 +24,7 @@
 namespace tzrpc {
 
 class SLibLoader;
+class JobInstance;
 
 class SoWrapper {
 public:
@@ -50,12 +51,7 @@ public:
 
     bool init();
 
-    int operator ()();
-
-    // 下面的暂时没用上
-    int operator ()(const std::string& req);
-    int operator ()(std::string& rsp);
-    int operator ()(const std::string& req, std::string& rsp);
+    int operator ()(JobInstance* inst);
 
 private:
     so_handler_t func_;

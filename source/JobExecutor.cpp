@@ -428,7 +428,7 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
 }
 
 bool JobExecutor::add_builtin_task(const std::string& name, const std::string& desc,
-                                   const std::string& time_str, const std::function<int()>& func,
+                                   const std::string& time_str, const std::function<int(JobInstance *)>& func,
                                    bool async) {
 
     if (name.empty() || time_str.empty() || !func ) {

@@ -164,7 +164,7 @@ bool SchTime::parse(const std::string& sch_str) {
 }
 
 
-std::string SchTime::str() {
+std::string SchTime::str() const {
     std::stringstream ss;
 
     ss << "sec_:  " << sec_tp_ << std::endl;
@@ -319,9 +319,9 @@ void JobInstance::operator()() {
 
     int code = 0;
     if (builtin_func_) {
-        code = builtin_func_();
+        code = builtin_func_(this);
     } else if (so_handler_) {
-        code = (*so_handler_)();
+        code = (*so_handler_)(this);
     } else {
         log_err("job with empty func!");
         return;

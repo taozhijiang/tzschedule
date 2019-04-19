@@ -7,10 +7,13 @@
 
 #include "SoBridge.h"
 #include "SlibLoader.h"
+
+#include "JobInstance.h"
+
 #include "SoWrapper.h"
 
-namespace tzrpc {
 
+namespace tzrpc {
 
 bool SoWrapper::load_dl() {
 
@@ -42,7 +45,7 @@ bool SoWrapperFunc::init() {
     return true;
 }
 
-int SoWrapperFunc::operator()() {
+int SoWrapperFunc::operator()(JobInstance* inst) {
 
     if (!func_) {
         log_err("func not initialized.");
@@ -52,7 +55,7 @@ int SoWrapperFunc::operator()() {
     int ret = 0;
 
     try {
-        ret = func_(NULL, NULL);
+        ret = func_(reinterpret_cast<const msg_t*>(inst), NULL);
     } catch (const std::exception& e) {
         log_err("post func call std::exception detect: %s.", e.what());
     } catch (...) {
@@ -62,77 +65,6 @@ int SoWrapperFunc::operator()() {
     return ret;
 }
 
-
-int SoWrapperFunc::operator()(const std::string& req) {
-
-    if (!func_) {
-        log_err("func not initialized.");
-        return -1;
-    }
-
-    msg_t msg_req{};
-    fill_msg(&msg_req, req.c_str(), req.size());
-
-    int ret = -1;
-
-    try {
-        ret = func_(&msg_req, NULL);
-    } catch (const std::exception& e) {
-        log_err("post func call std::exception detect: %s.", e.what());
-    } catch (...) {
-        log_err("get func call exception detect.");
-    }
-
-    return ret;
-}
-
-int SoWrapperFunc::operator()(std::string& rsp) {
-
-    if (!func_) {
-        log_err("func not initialized.");
-        return -1;
-    }
-
-    int ret = -1;
-    msg_t msg_rsp{};
-
-    try {
-        ret = func_(NULL, &msg_rsp);
-    } catch (const std::exception& e) {
-        log_err("post func call std::exception detect: %s.", e.what());
-    } catch (...) {
-        log_err("get func call exception detect.");
-    }
-
-    rsp = std::string(msg_rsp.data, msg_rsp.len);
-    return ret;
-}
-
-
-int SoWrapperFunc::operator()(const std::string& req, std::string& rsp) {
-
-    if (!func_) {
-        log_err("func not initialized.");
-        return -1;
-    }
-
-    msg_t msg_req{};
-    fill_msg(&msg_req, req.c_str(), req.size());
-
-    int ret = -1;
-    msg_t msg_rsp{};
-
-    try {
-        ret = func_(&msg_req, &msg_rsp);
-    } catch (const std::exception& e) {
-        log_err("post func call std::exception detect: %s.", e.what());
-    } catch (...) {
-        log_err("get func call exception detect.");
-    }
-
-    rsp = std::string(msg_rsp.data, msg_rsp.len);
-    return ret;
-}
 
 
 } // end namespace tzrpc

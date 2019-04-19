@@ -31,7 +31,7 @@ public:
     int32_t next_interval();
     int32_t next_interval(time_t from);
 
-    std::string str();
+    std::string str() const;
 
 private:
 
@@ -71,7 +71,7 @@ public:
 
     // 内置类型
     JobInstance(const std::string& name, const std::string& desc,
-                const std::string& time_str, const std::function<int()>& func,
+                const std::string& time_str, const std::function<int(JobInstance*)>& func,
                 enum ExecuteMethod method = ExecuteMethod::kExecDefer ):
         name_(name),
         desc_(desc),
@@ -108,11 +108,11 @@ public:
     bool next_trigger();
     void terminate();
 
-    bool is_builtin() {
+    bool is_builtin() const {
         return !!builtin_func_;
     }
 
-    std::string str() {
+    std::string str() const {
         std::stringstream ss;
 
         ss << "JobInstance: " << name_ << std::endl
@@ -134,7 +134,7 @@ private:
     enum  ExecuteMethod exec_method_; // defer async
     const std::string so_path_;
     std::unique_ptr<SoWrapperFunc> so_handler_;
-    std::function<int()> builtin_func_;
+    std::function<int(JobInstance* inst)> builtin_func_;
 
     enum ExecuteStatus exec_status_;
 
