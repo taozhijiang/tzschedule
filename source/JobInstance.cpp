@@ -12,6 +12,8 @@
 #include "Timer.h"
 #include "JobInstance.h"
 
+#include "Captain.h"
+
 #include "Log.h"
 
 namespace tzrpc {
@@ -317,19 +319,28 @@ void JobInstance::operator()() {
 
     SAFE_ASSERT(builtin_func_ || so_handler_);
 
-    int code = 0;
-    if (builtin_func_) {
-        code = builtin_func_(this);
-    } else if (so_handler_) {
-        code = (*so_handler_)(this);
-    } else {
-        log_err("job with empty func!");
-        return;
-    }
+    do {
 
-    if (code != 0) {
-        log_err("job func return %d, job desc: %s", code, this->str().c_str());
-    }
+        if(!Captain::instance().running_)
+            break;
+
+
+        int code = 0;
+        if (builtin_func_) {
+            code = builtin_func_(this);
+        } else if (so_handler_) {
+            code = (*so_handler_)(this);
+        } else {
+            log_err("job with empty func!");
+            return;
+        }
+
+        if (code != 0) {
+            log_err("job func return %d, job desc: %s", code, this->str().c_str());
+        }
+
+    } while (0);
+
 
     // 如果设置了Terminate标识，则设置退出标志
     // 因为我们是so_handler执行完之后才会设置下一个schedule，所以不应当会有并发问题

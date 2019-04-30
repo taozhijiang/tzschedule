@@ -14,6 +14,7 @@ define_colors()
 # make -- VERBOSE=1
 
 option(BUILD_DEBUG "Build Project for Debug Propurse..." OFF)
+option(BUILD_WITH_ZOOKEEPER "Build Project for ZooKeeper distributed features..." OFF)
 
 if(BUILD_DEBUG)
     set(CMAKE_BUILD_TYPE Debug)
@@ -43,15 +44,22 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 include_directories(
     ${PROJECT_SOURCE_DIR}/include/
     ${PROJECT_SOURCE_DIR}/source/
+    ${PROJECT_SOURCE_DIR}/deps
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/google/ 
 )
+
+if(BUILD_WITH_ZOOKEEPER)
+add_definitions(-DWITH_ZOOKEEPER)
+add_subdirectory( deps/clotho )
+endif()
 
 add_subdirectory( source/ )
 
 link_directories(
     /usr/lib64/mysql/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/zookeeper
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/boost/
 )
 
@@ -72,6 +80,9 @@ set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)
 
+if(BUILD_WITH_ZOOKEEPER)
+set (EXTRA_LIBS ${EXTRA_LIBS} Clotho zookeeper_mt)
+endif()
 
 
 # 某些库需要静态全连接，否则主服务没使用但是so使用，会报符号没有找到

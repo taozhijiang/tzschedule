@@ -11,10 +11,24 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <memory>
+
+
+
+#ifdef WITH_ZOOKEEPER
+
+#include <clotho/zkFrame.h>
+namespace Clotho {
+class zkFrame;
+}
+
+#endif
 
 
 namespace tzrpc {
 
+
+class InsaneBind;
 
 
 class Captain {
@@ -27,6 +41,19 @@ public:
     bool service_joinall();
     bool service_graceful();
     void service_terminate();
+
+    void loop();
+
+public:
+
+    // 实例仍然会调度，这里控制是否执行函数
+
+    volatile bool running_;
+    
+#ifdef WITH_ZOOKEEPER
+    std::shared_ptr<InsaneBind> insane_bind_;
+    std::shared_ptr<Clotho::zkFrame> zk_frame_;
+#endif // WITH_ZOOKEEPER
 
 private:
     Captain();

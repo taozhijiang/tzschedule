@@ -58,16 +58,6 @@ struct StrUtil {
         return orig - str.size();
     }
 
-
-    template<typename T>
-    static std::string convert_to_string(const T& arg) {
-        try {
-            return boost::lexical_cast<std::string>(arg);
-        } catch (boost::bad_lexical_cast& e) {
-            return "";
-        }
-    }
-
     static std::string trim_lowcase(std::string str) {  // copy
         return boost::algorithm::trim_copy(boost::to_lower_copy(str));
     }

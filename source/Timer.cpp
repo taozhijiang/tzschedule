@@ -26,7 +26,7 @@ bool TimerObject::init() {
     steady_timer_->async_wait(
         std::bind(&TimerObject::timer_run, shared_from_this(), std::placeholders::_1));
 
-    log_info("successful add timer with milliseconds %lu", timeout_);
+    //log_info("successful add timer with milliseconds %lu", timeout_);
     return true;
 }
 
@@ -51,7 +51,7 @@ void TimerObject::timer_run(const boost::system::error_code& ec) {
         steady_timer_->expires_from_now(milliseconds(timeout_));
         steady_timer_->async_wait(
             std::bind(&TimerObject::timer_run, shared_from_this(), std::placeholders::_1));
-        log_info("renew forever timer with milliseconds %lu", timeout_);
+        //log_info("renew forever timer with milliseconds %lu", timeout_);
     }
 }
 
