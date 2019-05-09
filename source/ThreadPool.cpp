@@ -62,7 +62,7 @@ public:
             }
 
             workers_[worker] = workobj;
-            log_alert("created task: #%d success ...", i);
+            log_warning("created task: #%d success ...", i);
         }
 
         return true;
@@ -70,7 +70,7 @@ public:
 
     bool init(ThreadRunnable func, uint32_t pool_size) {
 
-        log_alert("update pool_size from %d to %d", pool_size_, pool_size);
+        log_warning("update pool_size from %d to %d", pool_size_, pool_size);
         pool_size_ = pool_size;
         return init(func);
     }
@@ -175,7 +175,7 @@ public:
 
             return false;
         }
-        log_alert("Joined Task Success ...");
+        log_warning("Joined Task Success ...");
 
         // release this thread object
         pool_size_--;
@@ -195,7 +195,7 @@ public:
             it->first->join();
 
             if (it->second->status_ != ThreadStatus::kDead) {
-                log_alert("may gracefulStop failed!");
+                log_warning("may gracefulStop failed!");
             }
 
             // release this thread object
@@ -205,7 +205,7 @@ public:
             log_err("current size: %ld", workers_.size());
         }
 
-        log_alert("Good! thread pool clean up down!");
+        log_warning("Good! thread pool clean up down!");
     }
 
 private:
@@ -225,13 +225,13 @@ private:
 
             workers_[worker] = workobj;
             pool_size_++;
-            log_alert("Created Additional Task: #%d ...", i);
+            log_warning("Created Additional Task: #%d ...", i);
 
-            log_alert("Start Additional Task: #%d ...", i);
+            log_warning("Start Additional Task: #%d ...", i);
             workobj->status_ = ThreadStatus::kRunning;
         }
 
-        log_alert("Current ThreadPool size: %d", pool_size_);
+        log_warning("Current ThreadPool size: %d", pool_size_);
         return 0;
     }
 
@@ -256,7 +256,7 @@ private:
             }
         } while (0);
 
-        log_alert("current ThreadPool size: %d", pool_size_);
+        log_warning("current ThreadPool size: %d", pool_size_);
         return ((currsize - workers_.size()) >= num) ? 0 : -1;
     }
 

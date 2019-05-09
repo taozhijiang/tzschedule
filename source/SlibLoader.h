@@ -67,7 +67,7 @@ public:
             return false;
         }
 
-        log_alert("module %s load ok!", dl_path_.c_str());
+        log_warning("module %s load ok!", dl_path_.c_str());
         return true;
     }
 
@@ -89,7 +89,7 @@ public:
         }
 
         *func = func_t;
-        log_alert("load func %s from %s ok!", func_name.c_str(), dl_path_.c_str());
+        log_warning("load func %s from %s ok!", func_name.c_str(), dl_path_.c_str());
         return true;
     }
 
@@ -99,12 +99,12 @@ public:
             if (module_exit_) {
                 (*module_exit_)();
                 module_exit_ = NULL;
-                log_alert("module_exit from %s called!", dl_path_.c_str());
+                log_warning("module_exit from %s called!", dl_path_.c_str());
             }
 
             dlclose(dl_handle_);
             dl_handle_ = NULL;
-            log_alert("dlclose from %s called!", dl_path_.c_str());
+            log_warning("dlclose from %s called!", dl_path_.c_str());
         }
     }
 

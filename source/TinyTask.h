@@ -85,12 +85,12 @@ public:
 private:
     void run() {
 
-        log_info("TinyTask thread %#lx begin to run ...", (long)pthread_self());
+        log_warning("TinyTask thread %#lx begin to run ...", (long)pthread_self());
 
         while (true) {
 
             if( thread_terminate_ ) {
-                log_debug("TinyTask thread %#lx about to terminate ...", (long)pthread_self());
+                log_info("TinyTask thread %#lx about to terminate ...", (long)pthread_self());
                 break;
             }
 
@@ -106,7 +106,7 @@ private:
 
             thread_mng_.join_all();
 
-            log_debug("count %d task process done!", static_cast<int>(tasks.size()));
+            log_info("count %d task process done!", static_cast<int>(tasks.size()));
         }
     }
 

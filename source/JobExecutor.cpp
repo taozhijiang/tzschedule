@@ -180,7 +180,7 @@ bool JobExecutor::handle_so_task_conf(const libconfig::Setting& setting) {
     }
 
     tasks_[name] = ins;
-    log_debug("register handler %s success.", name.c_str());
+    log_info("register handler %s success.", name.c_str());
     return true;
 }
 
@@ -226,7 +226,7 @@ void JobExecutor::threads_adjust(const boost::system::error_code& ec) {
 
 void JobExecutor::job_executor_run(ThreadObjPtr ptr) {
 
-    log_alert("JobExecutor thread %#lx about to loop ...", (long)pthread_self());
+    log_warning("JobExecutor thread %#lx about to loop ...", (long)pthread_self());
 
     while (true) {
 
@@ -253,12 +253,12 @@ void JobExecutor::job_executor_run(ThreadObjPtr ptr) {
             (*s_instance)();
 
         } else {
-            log_debug("instance already release before, give up this task.");
+            log_info("instance already release before, give up this task.");
         }
     }
 
     ptr->status_ = ThreadStatus::kDead;
-    log_info("JobExecutor thread %#lx is about to terminate ... ", (long)pthread_self());
+    log_warning("JobExecutor thread %#lx is about to terminate ... ", (long)pthread_self());
 
     return;
 
@@ -268,7 +268,7 @@ void JobExecutor::job_executor_run(ThreadObjPtr ptr) {
 
 void JobExecutor::job_executor_async_run() {
 
-    log_alert("JobExecutor async %#lx about to loop ...", (long)pthread_self());
+    log_warning("JobExecutor async %#lx about to loop ...", (long)pthread_self());
 
     while (true) {
 
@@ -289,12 +289,12 @@ void JobExecutor::job_executor_async_run() {
             auto func = std::bind(&JobInstance::operator(), s_instance);
             async_task_->add_additional_task(func);
         } else {
-            log_debug("instance already release before, give up this task.");
+            log_info("instance already release before, give up this task.");
         }
 
     }
 
-    log_info("JobExecutor async %#lx is about to terminate ... ", (long)pthread_self());
+    log_warning("JobExecutor async %#lx is about to terminate ... ", (long)pthread_self());
 
     return;
 
@@ -453,7 +453,7 @@ bool JobExecutor::add_builtin_task(const std::string& name, const std::string& d
     }
 
     tasks_[name] = ins;
-    log_debug("register handler %s success.", name.c_str());
+    log_info("register handler %s success.", name.c_str());
     return true;
 }
 
@@ -552,7 +552,7 @@ bool JobExecutor::handle_so_task_runtime_conf(const libconfig::Setting& setting)
     }
 
     tasks_[name] = ins;
-    log_debug("register handler %s success.", name.c_str());
+    log_info("register handler %s success.", name.c_str());
     return true;
 }
 

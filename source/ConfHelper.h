@@ -61,7 +61,7 @@ public:
         // 超过10min，重新读取配置文件，尝试
         if (conf_update_time_ < ::time(NULL) - 10 * 60) {
 
-            log_debug("reloading config file, last update interval was %ld secs",
+            log_info("reloading config file, last update interval was %ld secs",
                       ::time(NULL) - conf_update_time_);
 
             auto conf = load_conf_file();

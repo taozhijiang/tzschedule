@@ -103,7 +103,7 @@ bool Ssl_thread_setup() {
     SSL_CTX_set_options(global_ssl_ctx, SSL_MODE_AUTO_RETRY);
 
 
-    log_info("SSL env setup successful!");
+    log_warning("SSL env setup successful!");
     return true;
 }
 
@@ -133,7 +133,7 @@ void Ssl_thread_clean() {
     mutex_buf = NULL;
     mutex_count = 0;
 
-    log_info("SSL env cleanup successful!");
+    log_warning("SSL env cleanup successful!");
 
     return;
 }

@@ -85,7 +85,7 @@ int ConfHelper::update_runtime_conf() {
         ret += (it->second)(*conf_ptr_); // call it!
     }
 
-    log_alert("ConfHelper::update_runtime_conf total callback return: %d", ret);
+    log_warning("ConfHelper::update_runtime_conf total callback return: %d", ret);
     in_process_ = false;
 
     return ret;
@@ -100,7 +100,7 @@ int ConfHelper::register_runtime_callback(const std::string& name, ConfUpdateCal
 
     std::lock_guard<std::mutex> lock(lock_);
     calls_.push_back({ name, func });
-    log_debug("register runtime for %s success.", name.c_str());
+    log_info("register runtime for %s success.", name.c_str());
 
     return 0;
 }

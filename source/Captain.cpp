@@ -39,14 +39,34 @@ Captain::Captain() :
 
 #ifdef WITH_ZOOKEEPER
 
-int callback_for_node(const std::string& dept, const std::string& serv, const std::string& node, 
-                      const std::map<std::string, std::string>& property) {
+static bool service_enable = true;
+
+
+static int callback_for_serv(const std::string& dept, const std::string& serv,
+                             const std::map<std::string, std::string>& property) {
+    
+    if (!service_enable)
+        return 0;
+
+    if(Captain::instance().zk_frame_->recipe_service_try_lock("bankpay", "argus_service", "master", 0)) {
+        log_info("owns lock ...");
+        Captain::instance().running_ = true;
+    } else {
+        log_info("lost lock ...");
+        Captain::instance().running_ = false;
+    }
+
+    return 0;
+}
+
+static int callback_for_node(const std::string& dept, const std::string& serv, const std::string& node,
+                             const std::map<std::string, std::string>& property) {
 
     auto iter = property.find("cfg_log_level");
     if(iter != property.end()) {
         int32_t value = ::atoi(iter->second.c_str());
         if(value >=0 && value <=7 ) {
-            log_info("log_level setup to %d", value);
+            log_warning("log_level setup to %d", value);
             tzrpc::log_init(value);
         }
     }
@@ -54,25 +74,20 @@ int callback_for_node(const std::string& dept, const std::string& serv, const st
     // 是否放弃锁竞争
     iter = property.find("enable");
     if( iter == property.end() || iter->second != "1") {
+        // 放弃锁
+        log_warning("node %s not enabled, give up lock_master and disable running", node.c_str());
         Captain::instance().zk_frame_->recipe_service_unlock("bankpay", "argus_service", "master");
-    }
-
-    return 0;
-}
-
-int callback_for_serv(const std::string& dept, const std::string& serv,
-                      const std::map<std::string, std::string>& property) {
-    
-    if(Captain::instance().zk_frame_->recipe_service_try_lock("bankpay", "argus_service", "master", 0)) {
-        log_debug("owns lock ...");
-        Captain::instance().running_ = true;
-    } else {
-        log_debug("lost lock ...");
+        service_enable = false;
         Captain::instance().running_ = false;
+    } else {
+        // 启用服务，并尝试锁竞争
+        service_enable = true;
+        callback_for_serv(dept, serv, {});
     }
 
     return 0;
 }
+
 
 #endif // WITH_ZOOKEEPER
 
@@ -128,7 +143,7 @@ bool Captain::init(const std::string& cfgFile) {
 
     insane_bind_ = std::make_shared<InsaneBind>(instance_port);
     instance_port =  insane_bind_->port();
-    log_debug("we will using port: %d", instance_port);
+    log_info("we will using port: %d", instance_port);
 
     std::string zookeeper_idc;
     std::string zookeeper_host;
@@ -185,14 +200,14 @@ bool Captain::init(const std::string& cfgFile) {
     }
 
 
-    log_debug("initialize with zookeeper successfully.");
+    log_info("initialize with zookeeper successfully.");
 
 #endif // WITH_ZOOKEEPER
 
 
     JobExecutor::instance().threads_start();
 
-    log_info("Captain makes all initialized...");
+    log_warning("Captain makes all initialized...");
     initialized_ = true;
 
     return true;

@@ -24,7 +24,7 @@ int create_process_pid();
 
 
 static void interrupted_callback(int signal) {
-    tzrpc::log_alert("Signal %d received ...", signal);
+    tzrpc::log_warning("Signal %d received ...", signal);
     switch (signal) {
         case SIGHUP:
             tzrpc::log_notice("SIGHUP recv, do update_run_conf... ");

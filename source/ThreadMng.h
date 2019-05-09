@@ -30,7 +30,7 @@ public:
     }
 
     ~ThreadGuard() {
-        log_debug("thread %#lx exit...", (long)pthread_self());
+        log_info("thread %#lx exit...", (long)pthread_self());
         tgroup_.remove_thread(thread_);
     }
 

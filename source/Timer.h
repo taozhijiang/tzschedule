@@ -39,7 +39,7 @@ public:
 
     ~TimerObject() {
         revoke_timer();
-        //log_debug("Good, Timer released...");
+        //log_info("Good, Timer released...");
     }
 
 

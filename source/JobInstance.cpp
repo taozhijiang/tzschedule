@@ -256,11 +256,11 @@ int32_t SchTime::next_interval(time_t from) {
 
             next_tm = ::mktime(&tm_time) - from;
             if (next_tm < 0) { // 日期溢出了
-                log_debug("overflow day switch from %d-%d-%d %d:%d:%d",
+                log_info("overflow day switch from %d-%d-%d %d:%d:%d",
                           tm_time.tm_year + 1900, tm_time.tm_mon, tm_time.tm_mday,
                           tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
                 next_tm += 24 * 60 * 60;
-                log_debug("new next_tm: %ld", next_tm);
+                log_info("new next_tm: %ld", next_tm);
             }
 
         } while (0);
@@ -278,7 +278,7 @@ int32_t SchTime::next_interval(time_t from) {
 
 
 JobInstance::~JobInstance() {
-    log_debug("Job destructed forever:\n%s", this->str().c_str());
+    log_info("Job destructed forever:\n%s", this->str().c_str());
 }
 
 
@@ -309,7 +309,7 @@ bool JobInstance::init() {
         return false;
     }
 
-    log_debug("JobInstance initialized finished:\n%s", this->str().c_str());
+    log_info("JobInstance initialized finished:\n%s", this->str().c_str());
     return true;
 }
 
@@ -384,7 +384,7 @@ bool JobInstance::next_trigger() {
         return false;
     }
 
-    log_debug("next trigger for %s success, with next_interval: %d secs.",
+    log_info("next trigger for %s success, with next_interval: %d secs.",
               name_.c_str(), next_interval);
     return true;
 }

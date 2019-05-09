@@ -24,7 +24,7 @@ int Status::register_status_callback(const std::string& name, StatusCallable fun
 
     std::lock_guard<std::mutex> lock(lock_);
     calls_.push_back({ name, func });
-    log_debug("register status for %s success.", name.c_str());
+    log_info("register status for %s success.", name.c_str());
 
     return 0;
 }

@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "init syslog failed!" << std::endl;
         ::exit(EXIT_FAILURE);
     }
-    tzrpc::log_debug("syslog initialized ok!");
+    tzrpc::log_info("syslog initialized ok!");
 
     // test boost::atomic
     boost::atomic<int> atomic_int;
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
     std::time_t now = boost::chrono::system_clock::to_time_t(boost::chrono::system_clock::now());
     char mbstr[32]{};
     std::strftime(mbstr, sizeof(mbstr), "%F %T", std::localtime(&now));
-    tzrpc::log_info("service started at %s", mbstr);
+    tzrpc::log_warning("service started at %s", mbstr);
 
     tzrpc::log_notice("whole service initialized ok!");
     tzrpc::Captain::instance().service_joinall();
