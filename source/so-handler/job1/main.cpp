@@ -1,7 +1,7 @@
 #include <string>
+#include <other/Log.h>
 
 #include "../../SoBridge.h"
-#include "../../Log.h"
 #include "../../JobInstance.h"
 
 using namespace tzrpc;
@@ -23,7 +23,7 @@ int module_exit() {
 int so_handler(const msg_t* req, msg_t* rsp) {
 
     const JobInstance* ptr = reinterpret_cast<const JobInstance *>(req);
-    log_info("inline job1 running log, job desc %s, thread %lx ...",
+    roo::log_info("inline job1 running log, job desc %s, thread %lx ...",
              ptr->str().c_str(), (long)pthread_self());
 
     return 0;

@@ -12,6 +12,8 @@
 
 #include <bitset>
 
+#include <concurrency/Timer.h>
+
 #include "SoWrapper.h"
 
 namespace tzrpc {
@@ -104,7 +106,7 @@ public:
 
 
     bool init();
-    void operator ()();
+    int operator ()();
     bool next_trigger();
     void terminate();
 
@@ -139,7 +141,7 @@ private:
     enum ExecuteStatus exec_status_;
 
     SchTime sch_timer_;              // 时间调度信息，解析后的结果
-    std::shared_ptr<TimerObject> timer_;
+    std::shared_ptr<roo::TimerObject> timer_;
 };
 
 } // end namespace tzrpc

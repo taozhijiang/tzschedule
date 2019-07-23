@@ -9,11 +9,16 @@
 #include <linux/limits.h>
 
 #include <version.h>
-#include "Log.h"
-#include "SslSetup.h"
 
-#include "ConfHelper.h"
-#include "Status.h"
+#include <other/Log.h>
+#include <other/Utils.h>
+
+#include <crypto/SslSetup.h>
+
+#include <scaffold/Setting.h>
+#include <scaffold/Status.h>
+
+#include <Captain.h>
 
 // API for main
 
@@ -24,25 +29,25 @@ int create_process_pid();
 
 
 static void interrupted_callback(int signal) {
-    tzrpc::log_warning("Signal %d received ...", signal);
+    roo::log_warning("Signal %d received ...", signal);
     switch (signal) {
         case SIGHUP:
-            tzrpc::log_notice("SIGHUP recv, do update_run_conf... ");
-            tzrpc::ConfHelper::instance().update_runtime_conf();
+            roo::log_warning("SIGHUP recv, do update_run_conf... ");
+            tzrpc::Captain::instance().setting_ptr_->update_runtime_setting();
             break;
 
         case SIGUSR1:
-            tzrpc::log_notice("SIGUSR recv, do module_status ... ");
+            roo::log_warning("SIGUSR recv, do module_status ... ");
             {
                 std::string output;
-                tzrpc::Status::instance().collect_status(output);
+                tzrpc::Captain::instance().status_ptr_->collect_status(output);
                 std::cout << output << std::endl;
-                tzrpc::log_notice("%s", output.c_str());
+                roo::log_warning("%s", output.c_str());
             }
             break;
 
         default:
-            tzrpc::log_err("Unhandled signal: %d", signal);
+            roo::log_err("Unhandled signal: %d", signal);
             break;
     }
 }
@@ -106,7 +111,7 @@ int create_process_pid() {
     FILE* fp = fopen(pid_file, "w+");
 
     if (!fp) {
-        tzrpc::log_err("Create pid file %s failed!", pid_file);
+        roo::log_err("Create pid file %s failed!", pid_file);
         return -1;
     }
 

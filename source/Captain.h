@@ -13,7 +13,11 @@
 #include <vector>
 #include <memory>
 
-
+namespace roo {
+class Setting;
+class Status;
+class Timer;
+}
 
 #ifdef WITH_ZOOKEEPER
 
@@ -68,6 +72,10 @@ private:
     bool initialized_;
 
 public:
+
+    std::shared_ptr<roo::Setting> setting_ptr_;
+    std::shared_ptr<roo::Status> status_ptr_;
+    std::shared_ptr<roo::Timer> timer_ptr_;
 };
 
 } // end namespace tzrpc

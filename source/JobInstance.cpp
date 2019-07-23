@@ -6,15 +6,14 @@
  */
 
 
-#include "StrUtil.h"
+#include <other/Log.h>
+#include <string/StrUtil.h>
 
 #include "SoWrapper.h"
-#include "Timer.h"
 #include "JobInstance.h"
 
 #include "Captain.h"
 
-#include "Log.h"
 
 namespace tzrpc {
 
@@ -45,7 +44,7 @@ bool SchTime::parse_subtime(const std::string& sch_str, std::bitset<N>& store) {
             // */3
             auto it = vec[i].find('/');
             if (it == std::string::npos) {
-                log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
+                roo::log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
                 return false;
             }
 
@@ -61,7 +60,7 @@ bool SchTime::parse_subtime(const std::string& sch_str, std::bitset<N>& store) {
                         store.set(j);
                     }
                 } else {
-                    log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
+                    roo::log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
                     return false;
                 }
             }
@@ -75,7 +74,7 @@ bool SchTime::parse_subtime(const std::string& sch_str, std::bitset<N>& store) {
             boost::split(time_p, vec[i], boost::is_any_of("-"));
             if (time_p.size() != 2 ||
                 time_p[0].empty() || time_p[1].empty()) {
-                log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
+                roo::log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
                 return false;
             }
 
@@ -85,7 +84,7 @@ bool SchTime::parse_subtime(const std::string& sch_str, std::bitset<N>& store) {
             if (from < 0 || to < 0 ||
                 from > max_val || to > max_val ||
                 from >= to) {
-                log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
+                roo::log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
                 return false;
             }
 
@@ -99,7 +98,7 @@ bool SchTime::parse_subtime(const std::string& sch_str, std::bitset<N>& store) {
         if (!vec[i].empty()) {
             int from = ::atoi(vec[i].c_str());
             if (from < 0 || from > max_val) {
-                log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
+                roo::log_err("invalid sch_str: %s, subitem: %s", sch_str.c_str(), vec[i].c_str());
                 return false;
             }
 
@@ -126,7 +125,7 @@ bool SchTime::parse(const std::string& sch_str) {
 
     // 删除连接处的可能空白字符
     for (auto it = sub.begin(); it != sub.end();) {
-        StrUtil::trim_whitespace(*it);
+        roo::StrUtil::trim_whitespace(*it);
         if (it->empty()) {
             it = sub.erase(it);
         } else {
@@ -135,30 +134,30 @@ bool SchTime::parse(const std::string& sch_str) {
     }
 
     if (sub.size() != 3) {
-        log_err("invalid sch_str: %s", sch_str.c_str());
+        roo::log_err("invalid sch_str: %s", sch_str.c_str());
         return false;
     }
 
     // sec
     if (!parse_subtime<60>(sub[0], sec_tp_)) {
-        log_err("parse sec part failed, full str: %s.", sch_str.c_str());
+        roo::log_err("parse sec part failed, full str: %s.", sch_str.c_str());
         return false;
     }
 
     // min
     if (!parse_subtime<60>(sub[1], min_tp_)) {
-        log_err("parse min part failed, full str: %s.", sch_str.c_str());
+        roo::log_err("parse min part failed, full str: %s.", sch_str.c_str());
         return false;
     }
 
     // hour
     if (!parse_subtime<24>(sub[2], hour_tp_)) {
-        log_err("parse hour part failed, full str: %s.", sch_str.c_str());
+        roo::log_err("parse hour part failed, full str: %s.", sch_str.c_str());
         return false;
     }
 
     if (sec_tp_.none() || min_tp_.none() || hour_tp_.none()) {
-        log_err("integrity check failed...");
+        roo::log_err("integrity check failed...");
         return false;
     }
 
@@ -248,25 +247,25 @@ int32_t SchTime::next_interval(time_t from) {
             // 最终合法性校验
             if (next_sec < 0 || next_min < 0 || next_hour < 0 ||
                 next_sec > 60 || next_min >= 60 || next_hour > 23) {
-                log_err("find next_interval failed...");
-                log_err("next_hour: %d, next_min: %d, next_sec:%d ",
+                roo::log_err("find next_interval failed...");
+                roo::log_err("next_hour: %d, next_min: %d, next_sec:%d ",
                         next_hour, next_min, next_sec);
                 return -1;
             }
 
             next_tm = ::mktime(&tm_time) - from;
             if (next_tm < 0) { // 日期溢出了
-                log_info("overflow day switch from %d-%d-%d %d:%d:%d",
+                roo::log_info("overflow day switch from %d-%d-%d %d:%d:%d",
                           tm_time.tm_year + 1900, tm_time.tm_mon, tm_time.tm_mday,
                           tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec);
                 next_tm += 24 * 60 * 60;
-                log_info("new next_tm: %ld", next_tm);
+                roo::log_info("new next_tm: %ld", next_tm);
             }
 
         } while (0);
 
     } catch (std::exception& e) {
-        log_err("invalid idx accessed: %s", e.what());
+        roo::log_err("invalid idx accessed: %s", e.what());
         return -1;
     }
 
@@ -278,7 +277,7 @@ int32_t SchTime::next_interval(time_t from) {
 
 
 JobInstance::~JobInstance() {
-    log_info("Job destructed forever:\n%s", this->str().c_str());
+    roo::log_info("Job destructed forever:\n%s", this->str().c_str());
 }
 
 
@@ -287,35 +286,35 @@ JobInstance::~JobInstance() {
 bool JobInstance::init() {
 
     if (name_.empty() || time_str_.empty() || (!builtin_func_ && so_path_.empty()) ) {
-        log_err("param fast check failed.");
+        roo::log_err("param fast check failed.");
         return false;
     }
 
     if (!sch_timer_.parse(time_str_)) {
-        log_err("parse time setting failed %s.", time_str_.c_str());
+        roo::log_err("parse time setting failed %s.", time_str_.c_str());
         return false;
     }
 
     if (!builtin_func_) {
         so_handler_.reset(new SoWrapperFunc(so_path_));
         if (!so_handler_ || !so_handler_->init()) {
-            log_err("create and init so_handler failed.");
+            roo::log_err("create and init so_handler failed.");
             return false;
         }
     }
 
     if (!next_trigger()) {
-        log_err("first init next_trigger failed.");
+        roo::log_err("first init next_trigger failed.");
         return false;
     }
 
-    log_info("JobInstance initialized finished:\n%s", this->str().c_str());
+    roo::log_info("JobInstance initialized finished:\n%s", this->str().c_str());
     return true;
 }
 
 
 
-void JobInstance::operator()() {
+int JobInstance::operator()() {
 
     SAFE_ASSERT(builtin_func_ || so_handler_);
 
@@ -331,12 +330,12 @@ void JobInstance::operator()() {
         } else if (so_handler_) {
             code = (*so_handler_)(this);
         } else {
-            log_err("job with empty func!");
-            return;
+            roo::log_err("job with empty func!");
+            return -1;
         }
 
         if (code != 0) {
-            log_err("job func return %d, job desc: %s", code, this->str().c_str());
+            roo::log_err("job func return %d, job desc: %s", code, this->str().c_str());
         }
 
     } while (0);
@@ -348,12 +347,14 @@ void JobInstance::operator()() {
     // 如果用户对同一个so设置两个任务，可能会有问题，不要这么做
     //
     if (exec_status_ == ExecuteStatus::kTerminating) {
-        log_notice("marked job terminating, we will disabled it!");
+        roo::log_notice("marked job terminating, we will disabled it!");
         exec_status_ = ExecuteStatus::kDisabled;
-        return;
+        return 0;
     }
 
     next_trigger();
+    
+    return 0;
 }
 
 
@@ -363,28 +364,28 @@ void JE_add_task_async(std::shared_ptr<JobInstance>& ins);
 bool JobInstance::next_trigger() {
 
     if (exec_status_ != ExecuteStatus::kRunning) {
-        log_notice("current exec_status is %d, not next...", static_cast<uint8_t>(exec_status_));
+        roo::log_notice("current exec_status is %d, not next...", static_cast<uint8_t>(exec_status_));
         return false;
     }
 
     int next_interval = sch_timer_.next_interval();
     if (next_interval <= 0) {
-        log_err("next_interval failed.");
+        roo::log_err("next_interval failed.");
         return false;
     }
 
     if (exec_method_ == ExecuteMethod::kExecDefer) {
-        timer_ = Timer::instance().add_better_timer(
+        timer_ = Captain::instance().timer_ptr_->add_better_timer(
             std::bind(JE_add_task_defer, shared_from_this()), next_interval * 1000, false);
     } else if (exec_method_ == ExecuteMethod::kExecAsync) {
-        timer_ = Timer::instance().add_better_timer(
+        timer_ = Captain::instance().timer_ptr_->add_better_timer(
             std::bind(JE_add_task_async, shared_from_this()), next_interval * 1000, false);
     } else {
-        log_err("unknown exec_method: %d", static_cast<int32_t>(exec_method_));
+        roo::log_err("unknown exec_method: %d", static_cast<int32_t>(exec_method_));
         return false;
     }
 
-    log_info("next trigger for %s success, with next_interval: %d secs.",
+    roo::log_info("next trigger for %s success, with next_interval: %d secs.",
               name_.c_str(), next_interval);
     return true;
 }
@@ -398,7 +399,5 @@ void JobInstance::terminate() {
         timer_.reset();
     }
 }
-
-
 
 } // end namespace tzrpc

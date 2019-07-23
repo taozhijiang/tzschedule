@@ -23,7 +23,7 @@ bool SoWrapper::load_dl() {
     }
 
     if (!dl_->init()) {
-        log_err("init dl %s failed!", dl_->get_dl_path().c_str());
+        roo::log_err("init dl %s failed!", dl_->get_dl_path().c_str());
         return false;
     }
 
@@ -35,11 +35,11 @@ bool SoWrapper::load_dl() {
 bool SoWrapperFunc::init() {
 
     if (!load_dl()) {
-        log_err("load dl failed!");
+        roo::log_err("load dl failed!");
         return false;
     }
     if (!dl_->load_func<so_handler_t>("so_handler", &func_)) {
-        log_err("Load so_handler_t func for %s failed.", dl_path_.c_str());
+        roo::log_err("Load so_handler_t func for %s failed.", dl_path_.c_str());
         return false;
     }
     return true;
@@ -48,7 +48,7 @@ bool SoWrapperFunc::init() {
 int SoWrapperFunc::operator()(JobInstance* inst) {
 
     if (!func_) {
-        log_err("func not initialized.");
+        roo::log_err("func not initialized.");
         return -1;
     }
 
@@ -57,9 +57,9 @@ int SoWrapperFunc::operator()(JobInstance* inst) {
     try {
         ret = func_(reinterpret_cast<const msg_t*>(inst), NULL);
     } catch (const std::exception& e) {
-        log_err("post func call std::exception detect: %s.", e.what());
+        roo::log_err("post func call std::exception detect: %s.", e.what());
     } catch (...) {
-        log_err("get func call exception detect.");
+        roo::log_err("get func call exception detect.");
     }
 
     return ret;

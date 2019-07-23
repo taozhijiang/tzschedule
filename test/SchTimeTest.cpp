@@ -3,7 +3,7 @@
 
 using namespace ::testing;
 
-#include "Log.h"
+#include <other/Log.h>
 #include "JobInstance.h"
 
 using namespace tzrpc;
@@ -14,18 +14,18 @@ TEST(SchTimeTest, SchTimeParseTest) {
     SchTime schTm{};
 
     ASSERT_THAT(schTm.parse(test_sch), Eq(true));
-//    log_debug("%s =>\n %s", test_sch.c_str(), schTm.str().c_str());
+//    roo::log_info("%s =>\n %s", test_sch.c_str(), schTm.str().c_str());
 
     test_sch = "0 3 4";
     ASSERT_THAT(schTm.parse(test_sch), Eq(true));
-//    log_debug("%s =>\n %s", test_sch.c_str(), schTm.str().c_str());
+//    roo::log_info("%s =>\n %s", test_sch.c_str(), schTm.str().c_str());
 
     test_sch = "0 0 0";
     ASSERT_THAT(schTm.parse(test_sch), Eq(true));
-//    log_debug("%s =>\n %s", test_sch.c_str(), schTm.str().c_str());
+//    roo::log_info("%s =>\n %s", test_sch.c_str(), schTm.str().c_str());
 
 
-    log_debug("SchTimeTest finished.");
+    roo::log_info("SchTimeTest finished.");
 }
 
 
@@ -61,7 +61,7 @@ TEST(SchTimeTest, SchTimeNextTest) {
     next_i = schTm.next_interval(FROM);
     ASSERT_THAT(next_i, Eq(120));
 
-    log_debug("SchTimeNextTest finished.");
+    roo::log_info("SchTimeNextTest finished.");
 }
 
 
@@ -95,7 +95,7 @@ TEST(SchTimeTest, SchTimeNextTest2) {
     next_i = schTm.next_interval(FROM);
     ASSERT_THAT(next_i, Eq(2 * 60 - 58));
 
-    log_debug("SchTimeNextTest2 finished.");
+    roo::log_info("SchTimeNextTest2 finished.");
 }
 
 
@@ -129,7 +129,7 @@ TEST(SchTimeTest, SchTimeNextTest3) {
     next_i = schTm.next_interval(FROM);
     ASSERT_THAT(next_i, Eq(2 * 60 + 2));
 
-    log_debug("SchTimeNextTest3 finished.");
+    roo::log_info("SchTimeNextTest3 finished.");
 }
 
 

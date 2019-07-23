@@ -47,6 +47,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/google/ 
+    ${PROJECT_SOURCE_DIR}/deps/roo
 )
 
 if(BUILD_WITH_ZOOKEEPER)
@@ -55,12 +56,15 @@ add_subdirectory( deps/clotho )
 endif()
 
 add_subdirectory( source/ )
+add_subdirectory( ${PROJECT_SOURCE_DIR}/deps/roo )
 
 link_directories(
     /usr/lib64/mysql/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/
-    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/zookeeper
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/zookeeper/
     ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/boost/
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/google/
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/google/protobuf-2.5.0/
 )
 
 # local temp generated file
@@ -75,15 +79,16 @@ add_executable( argus_service main.cpp setup.cpp build_version.cpp )
 # ld iconv ?
 
 set (WHOLE_LIBS Argus )
-
+set (EXTRA_LIBS ${EXTRA_LIBS} Roo )
 set (EXTRA_LIBS ${EXTRA_LIBS} ssl crypto config++)
 set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
 set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)
+set (EXTRA_LIBS ${EXTRA_LIBS} protoc protobuf )
+set (EXTRA_LIBS ${EXTRA_LIBS} glog_syslog )
 
 if(BUILD_WITH_ZOOKEEPER)
 set (EXTRA_LIBS ${EXTRA_LIBS} Clotho zookeeper_mt)
 endif()
-
 
 # 某些库需要静态全连接，否则主服务没使用但是so使用，会报符号没有找到
 target_link_libraries( argus_service -lrt -rdynamic -ldl

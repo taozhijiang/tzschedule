@@ -11,11 +11,14 @@
 
 #include <xtra_rhel.h>
 
-#include "Log.h"
-#include "EQueue.h"
+#include <other/Log.h>
 
-#include "ThreadPool.h"
-#include "ConfHelper.h"
+#include <container/EQueue.h>
+#include <concurrency/ThreadPool.h>
+#include <concurrency/AsyncTask.h>
+
+#include <scaffold/Setting.h>
+#include <scaffold/Status.h>
 
 #include "JobInstance.h"
 
@@ -85,29 +88,29 @@ private:
     bool remove_so_task(const std::string& name);
 
     // 在线程池中依序列执行
-    EQueue<std::weak_ptr<JobInstance>> defer_queue_;
-    ThreadPool threads_;
-    void job_executor_run(ThreadObjPtr ptr);  // main task loop
+    roo::EQueue<std::weak_ptr<JobInstance>> defer_queue_;
+    roo::ThreadPool threads_;
+    void job_executor_run(roo::ThreadObjPtr ptr);  // main task loop
 
 
     // 每个任务开辟一个新的线程执行，主要是用于比较耗时的任务
-    EQueue<std::weak_ptr<JobInstance>> async_queue_;
+    roo::EQueue<std::weak_ptr<JobInstance>> async_queue_;
     boost::thread async_main_;
-    std::shared_ptr<TinyTask> async_task_;
+    std::shared_ptr<roo::AsyncTask> async_task_;
     void job_executor_async_run();  // main task loop
 
 public:
 
     int threads_start() {
 
-        log_notice("about to start JobExecutor threads.");
+        roo::log_notice("about to start JobExecutor threads.");
         threads_.start_threads();
         return 0;
     }
 
     int threads_start_stop_graceful() {
 
-        log_notice("about to stop JobExecutor threads.");
+        roo::log_notice("about to stop JobExecutor threads.");
         threads_.graceful_stop_threads();
 
         return 0;
@@ -115,7 +118,7 @@ public:
 
     int threads_join() {
 
-        log_notice("about to join JobExecutor threads.");
+        roo::log_notice("about to join JobExecutor threads.");
         threads_.join_threads();
         return 0;
     }
@@ -130,7 +133,7 @@ private:
     JobExecutor& operator=(const JobExecutor&) = delete;
 
     // 根据rpc_queue_自动伸缩线程负载
-    std::shared_ptr<TimerObject> thread_adjust_timer_;
+    std::shared_ptr<roo::TimerObject> thread_adjust_timer_;
     void threads_adjust(const boost::system::error_code& ec);
 };
 

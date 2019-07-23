@@ -8,14 +8,15 @@
 
 #include <xtra_rhel.h>
 
-#include "Timer.h"
-#include "Status.h"
-#include "ConfHelper.h"
+#include <concurrency/Timer.h>
+#include <scaffold/Setting.h>
+#include <scaffold/Status.h>
+
+
+#include "Captain.h"
 
 #include "JobInstance.h"
 #include "JobExecutor.h"
-
-#include "TinyTask.h"
 
 namespace tzrpc {
 
@@ -51,19 +52,19 @@ bool JobExecutor::init(const libconfig::Config& conf) {
     if (conf_.thread_number_ <= 0 || conf_.thread_number_ > 100 ||
         conf_.thread_number_hard_ > 100 ||
         conf_.thread_number_hard_ < conf_.thread_number_) {
-        log_err("invalid thread_pool_size and hard setting: %d, %d",
+        roo::log_err("invalid thread_pool_size and hard setting: %d, %d",
                 conf_.thread_number_, conf_.thread_number_hard_);
         return false;
     }
 
     if (conf_.thread_step_queue_size_ < 0) {
-        log_err("invalid thread_pool_step_queue_size setting: %d",
+        roo::log_err("invalid thread_pool_step_queue_size setting: %d",
                 conf_.thread_step_queue_size_);
         return false;
     }
 
     if (conf_.thread_number_async_ <= 0) {
-        log_err("invalid thread_pool_async_size setting: %d",
+        roo::log_err("invalid thread_pool_async_size setting: %d",
                 conf_.thread_number_async_);
         return false;
     }
@@ -71,14 +72,14 @@ bool JobExecutor::init(const libconfig::Config& conf) {
     // 检查是否需要创建thread_adjust定时任务，进行线程池的动态伸缩
     if (conf_.thread_number_hard_ > conf_.thread_number_ &&
         conf_.thread_step_queue_size_ > 0) {
-        log_notice("we will support thread adjust with param hard %d, queue_step %d",
+        roo::log_notice("we will support thread adjust with param hard %d, queue_step %d",
                    conf_.thread_number_hard_, conf_.thread_step_queue_size_);
 
-        thread_adjust_timer_ = Timer::instance().add_better_timer(
+        thread_adjust_timer_ = Captain::instance().timer_ptr_->add_better_timer(
                                std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
                                1 * 1000, true);
         if (!thread_adjust_timer_) {
-            log_err("create thread adjust timer failed.");
+            roo::log_err("create thread adjust timer failed.");
             return false;
         }
     }
@@ -92,15 +93,15 @@ bool JobExecutor::init(const libconfig::Config& conf) {
         for (int i = 0; i < handlers.getLength(); ++i) {
             const libconfig::Setting& handler = handlers[i];
             if (!handle_so_task_conf(handler)) {
-                log_err("prase handle detail conf failed.");
+                roo::log_err("prase handle detail conf failed.");
                 return false;
             }
         }
 
     } catch (const libconfig::SettingNotFoundException& nfex) {
-        log_err("schedule.so_handlers not found!");
+        roo::log_err("schedule.so_handlers not found!");
     } catch (std::exception& e) {
-        log_err("execptions catched for %s", e.what());
+        roo::log_err("execptions catched for %s", e.what());
     }
 
 
@@ -108,23 +109,23 @@ bool JobExecutor::init(const libconfig::Config& conf) {
 
     if (!threads_.init_threads(
             std::bind(&JobExecutor::job_executor_run, this, std::placeholders::_1), conf_.thread_number_)) {
-        log_err("job_executor_run init task failed!");
+        roo::log_err("job_executor_run init task failed!");
         return false;
     }
 
     async_main_ = boost::thread(std::bind(&JobExecutor::job_executor_async_run, this));
-    async_task_ = std::make_shared<TinyTask>(conf_.thread_number_async_);
-    if (!async_task_ || !async_task_->init()) {
-        log_err("create async_task failed.");
+    async_task_ = std::make_shared<roo::AsyncTask>(conf_.thread_number_async_);
+    if (!async_task_ ) {
+        roo::log_err("create async_task failed.");
         return false;
     }
 
-    Status::instance().register_status_callback(
+    Captain::instance().status_ptr_->attach_status_callback(
         "JobExecutor",
         std::bind(&JobExecutor::module_status, this,
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-    ConfHelper::instance().register_runtime_callback(
+    Captain::instance().setting_ptr_->attach_runtime_callback(
         "JobExecutor",
         std::bind(&JobExecutor::module_runtime, this,
                   std::placeholders::_1));
@@ -151,7 +152,7 @@ bool JobExecutor::handle_so_task_conf(const libconfig::Setting& setting) {
 
     // 禁用的服务，初始化的时候不予加载
     if (!status) {
-        log_err("Task %s marked disabled, skip it at init stage.", name.c_str());
+        roo::log_err("Task %s marked disabled, skip it at init stage.", name.c_str());
         return true;
     }
 
@@ -162,25 +163,25 @@ bool JobExecutor::handle_so_task_conf(const libconfig::Setting& setting) {
         } else if (exec_method == "async") {
             method = ExecuteMethod::kExecAsync;
         } else {
-            log_err("invalid exec_method: %s", exec_method.c_str());
+            roo::log_err("invalid exec_method: %s", exec_method.c_str());
             return false;
         }
     }
 
     std::unique_lock<std::mutex> lock(lock_);
     if (tasks_.find(name) != tasks_.end()) {
-        log_err("task %s already registered, reject it (duplicate configure?)", name.c_str());
+        roo::log_err("task %s already registered, reject it (duplicate configure?)", name.c_str());
         return false;
     }
 
     auto ins = std::make_shared<JobInstance>(name, desc, sch_time, so_path, method);
     if (!ins || !ins->init()) {
-        log_err("init JobInstance failed, name: %s", name.c_str());
+        roo::log_err("init JobInstance failed, name: %s", name.c_str());
         return false;
     }
 
     tasks_[name] = ins;
-    log_info("register handler %s success.", name.c_str());
+    roo::log_info("register handler %s success.", name.c_str());
     return true;
 }
 
@@ -213,7 +214,7 @@ void JobExecutor::threads_adjust(const boost::system::error_code& ec) {
     }
 
     if (expect_thread != conf.thread_number_) {
-        log_notice("start thread number: %d, expect resize to %d",
+        roo::log_notice("start thread number: %d, expect resize to %d",
                    conf.thread_number_, expect_thread);
     }
 
@@ -224,21 +225,21 @@ void JobExecutor::threads_adjust(const boost::system::error_code& ec) {
 }
 
 
-void JobExecutor::job_executor_run(ThreadObjPtr ptr) {
+void JobExecutor::job_executor_run(roo::ThreadObjPtr ptr) {
 
-    log_warning("JobExecutor thread %#lx about to loop ...", (long)pthread_self());
+    roo::log_warning("JobExecutor thread %#lx about to loop ...", (long)pthread_self());
 
     while (true) {
 
         std::weak_ptr<JobInstance> job_instance{};
 
-        if (unlikely(ptr->status_ == ThreadStatus::kTerminating)) {
-            log_err("thread %#lx is about to terminating...", (long)pthread_self());
+        if (unlikely(ptr->status_ == roo::ThreadStatus::kTerminating)) {
+            roo::log_err("thread %#lx is about to terminating...", (long)pthread_self());
             break;
         }
 
         // 线程启动
-        if (unlikely(ptr->status_ == ThreadStatus::kSuspend)) {
+        if (unlikely(ptr->status_ == roo::ThreadStatus::kSuspend)) {
             ::usleep(1 * 1000 * 1000);
             continue;
         }
@@ -253,12 +254,12 @@ void JobExecutor::job_executor_run(ThreadObjPtr ptr) {
             (*s_instance)();
 
         } else {
-            log_info("instance already release before, give up this task.");
+            roo::log_info("instance already release before, give up this task.");
         }
     }
 
-    ptr->status_ = ThreadStatus::kDead;
-    log_warning("JobExecutor thread %#lx is about to terminate ... ", (long)pthread_self());
+    ptr->status_ = roo::ThreadStatus::kDead;
+    roo::log_warning("JobExecutor thread %#lx is about to terminate ... ", (long)pthread_self());
 
     return;
 
@@ -268,18 +269,11 @@ void JobExecutor::job_executor_run(ThreadObjPtr ptr) {
 
 void JobExecutor::job_executor_async_run() {
 
-    log_warning("JobExecutor async %#lx about to loop ...", (long)pthread_self());
+    roo::log_warning("JobExecutor async %#lx about to loop ...", (long)pthread_self());
 
     while (true) {
 
         std::weak_ptr<JobInstance> job_instance{};
-
-        uint32_t available = async_task_->available();
-        if (available == 0) {
-            log_notice("current async_task full.");
-            boost::this_thread::sleep_for(milliseconds(200));
-            continue;
-        }
 
         if (!async_queue_.POP(job_instance, 1000 /*1s*/)) {
             continue;
@@ -287,14 +281,14 @@ void JobExecutor::job_executor_async_run() {
 
         if (auto s_instance = job_instance.lock()) {
             auto func = std::bind(&JobInstance::operator(), s_instance);
-            async_task_->add_additional_task(func);
+            async_task_->add_async_task(func);
         } else {
-            log_info("instance already release before, give up this task.");
+            roo::log_info("instance already release before, give up this task.");
         }
 
     }
 
-    log_warning("JobExecutor async %#lx is about to terminate ... ", (long)pthread_self());
+    roo::log_warning("JobExecutor async %#lx is about to terminate ... ", (long)pthread_self());
 
     return;
 
@@ -302,7 +296,7 @@ void JobExecutor::job_executor_async_run() {
 
 int JobExecutor::module_status(std::string& module, std::string& name, std::string& val) {
 
-    module = "tzrpc";
+    module = "Argus";
     name = "JobExecutor";
 
     std::stringstream ss;
@@ -339,64 +333,65 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
     if (new_conf.thread_number_ <= 0 || new_conf.thread_number_ > 100 ||
         new_conf.thread_number_hard_ > 100 ||
         new_conf.thread_number_hard_ < new_conf.thread_number_) {
-        log_err("invalid thread_pool_size and thread_pool_size_hard setting: %d, %d",
+        roo::log_err("invalid thread_pool_size and thread_pool_size_hard setting: %d, %d",
                 new_conf.thread_number_, new_conf.thread_number_hard_);
     } else {
         if (new_conf.thread_number_ != conf_.thread_number_) {
-            log_notice("update thread_pool_size from %d to %d",
+            roo::log_notice("update thread_pool_size from %d to %d",
                        conf_.thread_number_, new_conf.thread_number_);
             conf_.thread_number_ = new_conf.thread_number_;
         }
 
         if (new_conf.thread_number_hard_ != conf_.thread_number_hard_) {
-            log_notice("update thread_pool_size_hard from %d to %d",
+            roo::log_notice("update thread_pool_size_hard from %d to %d",
                        conf_.thread_number_hard_, new_conf.thread_number_hard_);
             conf_.thread_number_hard_ = new_conf.thread_number_hard_;
         }
     }
 
     if (conf_.thread_step_queue_size_ < 0) {
-        log_err("invalid thread_pool_step_queue_size setting: %d",
+        roo::log_err("invalid thread_pool_step_queue_size setting: %d",
                 new_conf.thread_step_queue_size_);
     } else if (new_conf.thread_step_queue_size_ != conf_.thread_step_queue_size_) {
-        log_notice("update thread_pool_step_queue_size from %d to %d",
+        roo::log_notice("update thread_pool_step_queue_size from %d to %d",
                    conf_.thread_step_queue_size_, new_conf.thread_step_queue_size_);
         conf_.thread_step_queue_size_ = new_conf.thread_step_queue_size_;
     }
 
-
+#if 0
     if (new_conf.thread_number_async_ <= 0) {
-        log_err("invalid thread_pool_async_size setting: %d",
+        roo::log_err("invalid thread_pool_async_size setting: %d",
                 new_conf.thread_number_async_);
     } else if (new_conf.thread_number_async_ != conf_.thread_number_async_) {
-        log_notice("update thread_pool_async_size from %d to %d",
+        roo::log_notice("update thread_pool_async_size from %d to %d",
                    conf_.thread_number_async_, new_conf.thread_number_async_);
         conf_.thread_number_async_ = new_conf.thread_number_async_;
 
         // 更新异步线程池的最大线程数
         async_task_->modify_spawn_size(conf_.thread_number_async_);
     }
+#endif
 
     // 判定是否需要增加thread_adjust
     if (conf_.thread_number_hard_ > conf_.thread_number_ &&
         conf_.thread_step_queue_size_ > 0) {
 
-        log_notice("we will support thread adjust with param hard %d, queue_step %d",
+        roo::log_notice("we will support thread adjust with param hard %d, queue_step %d",
                    conf_.thread_number_hard_, conf_.thread_step_queue_size_);
 
         if (!thread_adjust_timer_) {
-            thread_adjust_timer_ = Timer::instance().add_better_timer(
+            thread_adjust_timer_ = Captain::instance().timer_ptr_->add_better_timer(
                                    std::bind(&JobExecutor::threads_adjust, this, std::placeholders::_1),
                                    1 * 1000, true);
             if (!thread_adjust_timer_) {
-                log_err("create thread adjust timer failed.");
+                roo::log_err("create thread adjust timer failed.");
             }
         }
     } else {
 
         // 需要取消该线程的执行（洁癖）
         if (thread_adjust_timer_) {
-            log_notice("we will close thread_adjust_timer_");
+            roo::log_notice("we will close thread_adjust_timer_");
             thread_adjust_timer_->revoke_timer();
             thread_adjust_timer_.reset();
         }
@@ -412,15 +407,15 @@ int JobExecutor::module_runtime(const libconfig::Config& conf) {
         for (int i = 0; i < handlers.getLength(); ++i) {
             const libconfig::Setting& handler = handlers[i];
             if (!handle_so_task_runtime_conf(handler)) {
-                log_err("prase handle detail conf failed.");
+                roo::log_err("prase handle detail conf failed.");
                 return false;
             }
         }
 
     } catch (const libconfig::SettingNotFoundException& nfex) {
-        log_err("schedule.so_handlers not found!");
+        roo::log_err("schedule.so_handlers not found!");
     } catch (std::exception& e) {
-        log_err("execptions catched for %s", e.what());
+        roo::log_err("execptions catched for %s", e.what());
     }
 
 
@@ -432,7 +427,7 @@ bool JobExecutor::add_builtin_task(const std::string& name, const std::string& d
                                    bool async) {
 
     if (name.empty() || time_str.empty() || !func ) {
-        log_err("param fast check failed.");
+        roo::log_err("param fast check failed.");
         return false;
     }
 
@@ -442,18 +437,18 @@ bool JobExecutor::add_builtin_task(const std::string& name, const std::string& d
 
     std::unique_lock<std::mutex> lock(lock_);
     if (tasks_.find(name) != tasks_.end()) {
-        log_err("task %s already registered, reject it (duplicate configure?)", name.c_str());
+        roo::log_err("task %s already registered, reject it (duplicate configure?)", name.c_str());
         return false;
     }
 
     auto ins = std::make_shared<JobInstance>(name, desc, time_str, func, method);
     if (!ins || !ins->init()) {
-        log_err("init builtin JobInstance failed, name: %s", name.c_str());
+        roo::log_err("init builtin JobInstance failed, name: %s", name.c_str());
         return false;
     }
 
     tasks_[name] = ins;
-    log_info("register handler %s success.", name.c_str());
+    roo::log_info("register handler %s success.", name.c_str());
     return true;
 }
 
@@ -475,12 +470,12 @@ bool JobExecutor::remove_so_task(const std::string& name) {
 
     auto handle = tasks_.find(name);
     if (handle == tasks_.end()) {
-        log_err("task %s not registered, fast return", name.c_str());
+        roo::log_err("task %s not registered, fast return", name.c_str());
         return true;
     }
 
     if (handle->second->is_builtin()) {
-        log_err("remove builtin task, weird... hh");
+        roo::log_err("remove builtin task, weird... hh");
         return false;
     }
 
@@ -489,14 +484,14 @@ bool JobExecutor::remove_so_task(const std::string& name) {
     handle->second->terminate();
 
     while (!handle->second.unique()) {
-        log_notice("handle outside ref count: %d ...", static_cast<int>(handle->second.use_count() - 1));
-        boost::this_thread::sleep_for(milliseconds(100));
+        roo::log_notice("handle outside ref count: %d ...", static_cast<int>(handle->second.use_count() - 1));
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
     }
 
     tasks_.erase(name);
     handle = tasks_.end();
 
-    log_notice("handler %s successful removed.", name.c_str());
+    roo::log_notice("handler %s successful removed.", name.c_str());
     return true;
 }
 
@@ -520,7 +515,7 @@ bool JobExecutor::handle_so_task_runtime_conf(const libconfig::Setting& setting)
 
     // 禁用的服务，一直阻塞，直到服务不再被占用，然后卸载
     if (!status) {
-        log_err("task %s marked disabled, we will try to unload it", name.c_str());
+        roo::log_err("task %s marked disabled, we will try to unload it", name.c_str());
         return remove_so_task(name);
     }
 
@@ -534,25 +529,25 @@ bool JobExecutor::handle_so_task_runtime_conf(const libconfig::Setting& setting)
         } else if (exec_method == "async") {
             method = ExecuteMethod::kExecAsync;
         } else {
-            log_err("invalid exec_method: %s", exec_method.c_str());
+            roo::log_err("invalid exec_method: %s", exec_method.c_str());
             return false;
         }
     }
 
     std::unique_lock<std::mutex> lock(lock_);
     if (tasks_.find(name) != tasks_.end()) {
-        log_err("task %s already registered, reject it (duplicate configure?)", name.c_str());
+        roo::log_err("task %s already registered, reject it (duplicate configure?)", name.c_str());
         return false;
     }
 
     auto ins = std::make_shared<JobInstance>(name, desc, sch_time, so_path, method);
     if (!ins || !ins->init()) {
-        log_err("init JobInstance failed, name: %s", name.c_str());
+        roo::log_err("init JobInstance failed, name: %s", name.c_str());
         return false;
     }
 
     tasks_[name] = ins;
-    log_info("register handler %s success.", name.c_str());
+    roo::log_info("register handler %s success.", name.c_str());
     return true;
 }
 
