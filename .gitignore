@@ -1,4 +1,8 @@
+include/version.h
+include/config.h
 .vscode/
+build/
+deps/
 _gsdata_/
 *.vpj
 *.vpw
@@ -6,4 +10,3 @@ _gsdata_/
 *.vpwhistu
 *.vtg
 .DS_Store
-include/config.h

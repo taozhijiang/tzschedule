@@ -9,23 +9,25 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/include/
     ${PROJECT_SOURCE_DIR}/source/
     ${PROJECT_SOURCE_DIR}/deps/
-    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/
-    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/include/google/ 
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhel7.x/self/include/
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhel7.x/boost_prefix/include/ 
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhel7.x/google_prefix/include/ 
 )
 
 link_directories( /usr/lib64/mysql/
-    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/
-    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/boost/
-    ${PROJECT_SOURCE_DIR}/deps/xtra_rhelz.x/libs/google/
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhel7.x/self/lib/
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhel7.x/boost_prefix/lib
+    ${PROJECT_SOURCE_DIR}/deps/xtra_rhel7.x/google_prefix/lib
     ../lib
 )
 
 set (TEST_HOST_LIB Argus)
 
-set (EXTRA_LIBS ${EXTRA_LIBS} rt ssl crypto config++)
-set (EXTRA_LIBS ${EXTRA_LIBS} pthread)
-set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)
+set (EXTRA_LIBS ${EXTRA_LIBS} rt dl)
+set (EXTRA_LIBS ${EXTRA_LIBS} crypto ssl pthread)
 
+set (EXTRA_LIBS ${EXTRA_LIBS} config++)
+set (EXTRA_LIBS ${EXTRA_LIBS} boost_system boost_thread boost_chrono boost_regex)
 set (EXTRA_LIBS ${EXTRA_LIBS} gtest gmock gtest_main)
 
 add_individual_test(SchTime)
